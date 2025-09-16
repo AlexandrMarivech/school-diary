@@ -26,7 +26,7 @@
         <tbody>
         {% for g in grades %}
           <tr>
-            <td>{{ g.subject_id and (Subject.query.get(g.subject_id).name) or '' }}</td>
+            <td>{{ subject_map.get(g.subject_id, '') }}</td>
             <td>{{ g.value }}</td>
             <td>{{ g.year }}</td>
             <td>{{ g.quarter }}</td>

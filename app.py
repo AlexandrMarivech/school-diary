@@ -110,23 +110,38 @@ def student_page():
         return redirect(url_for('login'))
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
-    quarter = int(request.args.get('quarter', 0))  # 0 = все
-    subject_id = int(request.args.get('subject', 0))  # 0 = все
+    quarter = int(request.args.get('quarter', 0))      # 0 = все
+    subject_id = int(request.args.get('subject', 0))   # 0 = все
 
     subjects = Subject.query.all()
+    # Словарь id -> название предмета (чтобы не дёргать БД из шаблона)
+    subject_map = {s.id: s.name for s in subjects}
+
     q = Grade.query.filter_by(student_id=student_id, year=year)
     if quarter != 0:
         q = q.filter_by(quarter=quarter)
     if subject_id != 0:
         q = q.filter_by(subject_id=subject_id)
     grades = q.all()
-    # compute averages per subject
+
+    # средние по предметам
     avg = {}
     for g in grades:
-        subj = Subject.query.get(g.subject_id).name
-        avg.setdefault(subj, []).append(g.value)
-    avg = {k: round(sum(v)/len(v),2) for k,v in avg.items()}
-    return render_template('student.html', subjects=subjects, grades=grades, avg=avg, year=year, quarter=quarter, subject_id=subject_id)
+        subjname = subject_map.get(g.subject_id, '')
+        avg.setdefault(subjname, []).append(g.value)
+    avg = {k: round(sum(v)/len(v), 2) for k, v in avg.items()}
+
+    return render_template(
+        'student.html',
+        subjects=subjects,
+        subject_map=subject_map,   # <-- добавили
+        grades=grades,
+        avg=avg,
+        year=year,
+        quarter=quarter,
+        subject_id=subject_id
+    )
+
 
 # ---------- УЧИТЕЛЬ ----------
 @app.route('/teacher', methods=['GET','POST'])
@@ -209,6 +224,7 @@ def admin_page():
 # ----- CLI: initdb -----
 if __name__ == '__main__':
     if 'initdb' in sys.argv:
-        create_demo_data()
+        with app.app_context():
+            create_demo_data()
     else:
         app.run(host='0.0.0.0', port=5000, debug=True)
