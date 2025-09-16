@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h4>Администрирование</h4>
+{% if message %}<div class="alert alert-info">{{ message }}</div>{% endif %}
+
+<h5>Добавить пользователя</h5>
+<form method="post" class="row g-2">
+  <div class="col-md-3"><input name="username" class="form-control" placeholder="login" required></div>
+  <div class="col-md-3"><input name="fullname" class="form-control" placeholder="ФИО"></div>
+  <div class="col-md-2"><input name="password" class="form-control" placeholder="пароль" required></div>
+  <div class="col-md-2">
+    <select name="role" class="form-select">
+      <option value="student">Ученик</option>
+      <option value="teacher">Учитель</option>
+      <option value="admin">Админ</option>
+    </select>
+  </div>
+  <div class="col-md-2"><button class="btn btn-primary">Создать</button></div>
+</form>
+
+<h5 class="mt-4">Список пользователей</h5>
+<table class="table">
+  <thead><tr><th>Логин</th><th>ФИО</th><th>Роль</th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr><td>{{ u.username }}</td><td>{{ u.fullname }}</td><td>{{ u.role }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

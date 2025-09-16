@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h4>Учитель — ввод оценок</h4>
+{% if message %}<div class="alert alert-success">{{ message }}</div>{% endif %}
+<form method="post">
+  <div class="row mb-3">
+    <div class="col"><label>Предмет</label>
+      <select name="subject" class="form-select">
+        {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col"><label>Год</label><input name="year" value="{{ current_year }}" class="form-control"></div>
+    <div class="col"><label>Четверть</label><input name="quarter" value="1" class="form-control"></div>
+  </div>
+
+  <h5>Список учеников</h5>
+  <table class="table">
+    <thead><tr><th>Ученик</th><th>Оценка (если оставить пустым — не сохраняется)</th></tr></thead>
+    <tbody>
+    {% for st in students %}
+      <tr>
+        <td>{{ st.fullname or st.username }}</td>
+        <td><input name="student_{{ st.id }}" class="form-control" placeholder="например 4"></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button class="btn btn-primary">Сохранить оценки</button>
+</form>
+
+<hr>
+<h5>Экспорт отчёта</h5>
+<form method="get" action="{{ url_for('export_class') }}">
+  <div class="row">
+    <div class="col"><label>Предмет</label>
+      <select name="subject" class="form-select">
+        <option value="0">Все</option>
+        {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col"><label>Год</label><input name="year" value="{{ current_year }}" class="form-control"></div>
+    <div class="col"><label>Четверть (0=Все)</label><input name="quarter" value="0" class="form-control"></div>
+  </div>
+  <button class="btn btn-secondary mt-2">Скачать CSV</button>
+</form>
+{% endblock %}
