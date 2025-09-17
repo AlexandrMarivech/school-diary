@@ -136,16 +136,38 @@ def login():
             error = 'Неправильный логин или пароль'
     return render_template('login.html', error=error)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
     role = session.get('role')
+
+    # здесь добавим тестовые новости
+    news = [
+        {
+            "title": "Запущена новая школьная олимпиада",
+            "desc": "Ученики могут принять участие в олимпиаде по математике и русскому языку.",
+            "url": "https://edu.gov.ru/",
+            "image": "https://picsum.photos/400/200?random=1"
+        },
+        {
+            "title": "Обновления сайта",
+            "desc": "Теперь доступен отчёт по ученику и отчёт по классу.",
+            "url": "https://github.com/AlexandrMarivech/school-diary",
+            "image": "https://picsum.photos/400/200?random=2"
+        },
+        {
+            "title": "Новости науки",
+            "desc": "Учёные создали новый материал, который может заменить пластик.",
+            "url": "https://nplus1.ru/",
+            "image": "https://picsum.photos/400/200?random=3"
+        }
+    ]
+
+    return render_template('dashboard.html', role=role, news=news)
+
+
 
     # демо-новости (позже подключим API)
     demo_news = [
