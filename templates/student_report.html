@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Отчёт по ученику за {{ year }} год</h2>
+
+<table border="1" cellpadding="5">
+  <tr>
+    <th>Предмет</th>
+    <th>Средний балл</th>
+  </tr>
+  {% for subj, avg in subject_avgs.items() %}
+  <tr>
+    <td>{{ subj }}</td>
+    <td>{{ avg }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% if overall_avg %}
+  <p><b>Общий средний балл:</b> {{ overall_avg }}</p>
+{% else %}
+  <p>Оценок пока нет.</p>
+{% endif %}
+
+<a href="{{ url_for('student_page') }}">← Назад в дневник</a>
+{% endblock %}

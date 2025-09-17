@@ -146,6 +146,40 @@ def student_page():
         subject_id=subject_id
     )
 
+# ---------- ОТЧЁТ УЧЕНИКА ЗА ГОД ----------
+@app.route('/student/report')
+def student_report():
+    if 'user_id' not in session or session.get('role') != 'student':
+        return redirect(url_for('login'))
+
+    student_id = session['user_id']
+    year = int(request.args.get('year', current_year()))
+
+    subjects = Subject.query.all()
+    subject_map = {s.id: s.name for s in subjects}
+
+    q = Grade.query.filter_by(student_id=student_id, year=year)
+    grades = q.all()
+
+    # считаем средний балл по каждому предмету
+    subject_avgs = {}
+    for g in grades:
+        subjname = subject_map.get(g.subject_id, '')
+        subject_avgs.setdefault(subjname, []).append(g.value)
+
+    subject_avgs = {k: round(sum(v)/len(v), 2) for k, v in subject_avgs.items()}
+
+    # общий средний
+    all_grades = [g.value for g in grades]
+    overall_avg = round(sum(all_grades)/len(all_grades), 2) if all_grades else None
+
+    return render_template(
+        'student_report.html',
+        year=year,
+        subject_avgs=subject_avgs,
+        overall_avg=overall_avg
+    )
+
 
 # ---------- УЧИТЕЛЬ ----------
 @app.route('/teacher', methods=['GET','POST'])
