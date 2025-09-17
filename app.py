@@ -13,7 +13,7 @@ app.config['SECRET_KEY'] = os.environ.get(
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)   # <-- теперь есть!
+db = SQLAlchemy(app)
 
 # ----- МОДЕЛИ -----
 class User(db.Model):
@@ -42,29 +42,77 @@ def current_year():
 def create_demo_data():
     db.drop_all()
     db.create_all()
-    # subjects
+
+    # --- предметы ---
     s1 = Subject(name='Русский')
     s2 = Subject(name='Математика')
     s3 = Subject(name='Физика')
-    db.session.add_all([s1,s2,s3])
+    db.session.add_all([s1, s2, s3])
     db.session.commit()
 
-    # users: admin, teacher, student
-    admin = User(username='admin', password_hash=generate_password_hash('admin123'), role='admin', fullname='Администратор Школы')
-    teacher = User(username='teacher', password_hash=generate_password_hash('teach123'), role='teacher', fullname='Иван Иванов (Учитель)')
-    student = User(username='student', password_hash=generate_password_hash('stud123'), role='student', fullname='Пётр Петров (Ученик)')
-    db.session.add_all([admin, teacher, student])
+    # --- пользователи ---
+    admin = User(username='admin', password_hash=generate_password_hash('admin123'),
+                 role='admin', fullname='Администратор Школы')
+    teacher = User(username='teacher', password_hash=generate_password_hash('teach123'),
+                   role='teacher', fullname='Иван Иванов (Учитель)')
+
+    students = [
+        User(username='student', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Пётр Петров (Отличник)'),
+        User(username='student2', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Анна Смирнова (Хорошистка)'),
+        User(username='student3', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Сергей Кузнецов (Троечник)'),
+        User(username='student4', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Мария Иванова (Середнячка)'),
+        User(username='student5', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Алексей Соколов (Смешанные оценки)'),
+        User(username='student6', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Екатерина Попова (Сильна в математике)'),
+        User(username='student7', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Дмитрий Волков (Слаб по физике)'),
+        User(username='student8', password_hash=generate_password_hash('stud123'),
+             role='student', fullname='Ольга Васильева (Хорошистка)'),
+    ]
+
+    db.session.add_all([admin, teacher] + students)
     db.session.commit()
 
-    # sample grades (student has a few grades)
-    g1 = Grade(student_id=student.id, subject_id=s1.id, value=4, year=current_year(), quarter=1)
-    g2 = Grade(student_id=student.id, subject_id=s2.id, value=5, year=current_year(), quarter=1)
-    g3 = Grade(student_id=student.id, subject_id=s3.id, value=3, year=current_year(), quarter=2)
-    db.session.add_all([g1,g2,g3])
-    db.session.commit()
-    print("Demo data created. Users: admin/admin123, teacher/teach123, student/stud123")
+    # --- шаблоны оценок для разных "типов" учеников ---
+    patterns = {
+        'Отличник': [5, 5, 5, 5],
+        'Хорошистка': [4, 5, 4, 5],
+        'Троечник': [3, 3, 3, 3],
+        'Середнячка': [3, 4, 3, 4],
+        'Смешанные оценки': [3, 4, 5, 4],
+        'Сильна в математике': [3, 4, 5, 4],   # русский/физика средне, математика всегда 5
+        'Слаб по физике': [4, 4, 3, 3],        # физика ниже, остальные нормально
+        'Ольга Васильева': [4, 5, 4, 5],
+    }
 
-# ----- МАРШРУТЫ -----
+    # --- добавляем оценки ---
+    all_subjects = [s1, s2, s3]
+    for st in students:
+        label = (st.fullname or "").split("(")[-1].replace(")", "").strip()
+        base_pattern = patterns.get(label, [3, 4, 4, 5])
+
+        for subj in all_subjects:
+            for q, val in enumerate(base_pattern, start=1):
+                # спец. правила
+                if "математике" in label and subj.name == "Математика":
+                    val = 5
+                if "физике" in label and subj.name == "Физика":
+                    val = 3
+
+                g = Grade(student_id=st.id, subject_id=subj.id, value=val,
+                          year=current_year(), quarter=q)
+                db.session.add(g)
+
+    db.session.commit()
+    print("Demo data created. Users: admin/admin123, teacher/teach123, student…student8/stud123")
+
+
+# ----- АВТОРИЗАЦИЯ -----
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -114,11 +162,10 @@ def student_page():
         return redirect(url_for('login'))
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
-    quarter = int(request.args.get('quarter', 0))      # 0 = все
-    subject_id = int(request.args.get('subject', 0))   # 0 = все
+    quarter = int(request.args.get('quarter', 0))
+    subject_id = int(request.args.get('subject', 0))
 
     subjects = Subject.query.all()
-    # Словарь id -> название предмета (чтобы не дёргать БД из шаблона)
     subject_map = {s.id: s.name for s in subjects}
 
     q = Grade.query.filter_by(student_id=student_id, year=year)
@@ -128,7 +175,6 @@ def student_page():
         q = q.filter_by(subject_id=subject_id)
     grades = q.all()
 
-    # средние по предметам
     avg = {}
     for g in grades:
         subjname = subject_map.get(g.subject_id, '')
@@ -138,7 +184,7 @@ def student_page():
     return render_template(
         'student.html',
         subjects=subjects,
-        subject_map=subject_map,   # <-- добавили
+        subject_map=subject_map,
         grades=grades,
         avg=avg,
         year=year,
@@ -146,7 +192,6 @@ def student_page():
         subject_id=subject_id
     )
 
-# ---------- ОТЧЁТ УЧЕНИКА ЗА ГОД ----------
 @app.route('/student/report')
 def student_report():
     if 'user_id' not in session or session.get('role') != 'student':
@@ -161,7 +206,6 @@ def student_report():
     q = Grade.query.filter_by(student_id=student_id, year=year)
     grades = q.all()
 
-    # считаем средний балл по каждому предмету
     subject_avgs = {}
     for g in grades:
         subjname = subject_map.get(g.subject_id, '')
@@ -169,7 +213,6 @@ def student_report():
 
     subject_avgs = {k: round(sum(v)/len(v), 2) for k, v in subject_avgs.items()}
 
-    # общий средний
     all_grades = [g.value for g in grades]
     overall_avg = round(sum(all_grades)/len(all_grades), 2) if all_grades else None
 
@@ -180,7 +223,6 @@ def student_report():
         overall_avg=overall_avg
     )
 
-
 # ---------- УЧИТЕЛЬ ----------
 @app.route('/teacher', methods=['GET','POST'])
 def teacher_page():
@@ -190,7 +232,6 @@ def teacher_page():
     students = User.query.filter_by(role='student').all()
     message = ''
     if request.method == 'POST':
-        # params: subject, year, quarter, then grades as student_<id>
         subject_id = int(request.form['subject'])
         year = int(request.form['year'])
         quarter = int(request.form['quarter'])
@@ -207,7 +248,6 @@ def teacher_page():
         message = 'Оценки сохранены.'
     return render_template('teacher.html', subjects=subjects, students=students, message=message, current_year=current_year())
 
-# ---------- ЭКСПОРТ (CSV, открывается в Excel) ----------
 @app.route('/export/class')
 def export_class():
     if 'user_id' not in session or session.get('role') not in ['teacher','admin']:
@@ -217,10 +257,9 @@ def export_class():
     quarter = int(request.args.get('quarter', 0))
     subject = Subject.query.get(subject_id)
     students = User.query.filter_by(role='student').all()
-    # build CSV in memory
     si = io.StringIO()
     cw = csv.writer(si)
-    cw.writerow(['ФИО ученика','Предмет', 'Оценки (список)','Средний балл'])
+    cw.writerow(['ФИО ученика','Предмет','Оценки','Средний балл'])
     for st in students:
         q = Grade.query.filter_by(student_id=st.id, year=year)
         if quarter != 0:
@@ -235,8 +274,7 @@ def export_class():
     output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
     output.headers["Content-type"] = "text/csv; charset=utf-8"
     return output
-    
-    # ---------- ОТЧЁТ УЧИТЕЛЯ ----------
+
 @app.route('/teacher/report')
 def teacher_report():
     if 'user_id' not in session or session.get('role') != 'teacher':
@@ -244,19 +282,18 @@ def teacher_report():
 
     subject_id = int(request.args.get('subject', 0))
     year = int(request.args.get('year', current_year()))
-    period = request.args.get('period', 'year')  # quarter1, quarter2, halfyear1, halfyear2, year
+    period = request.args.get('period', 'year')
 
     subjects = Subject.query.all()
     students = User.query.filter_by(role='student').all()
 
-    # вычисляем, какие четверти входят в выбранный период
     if period.startswith('quarter'):
         quarters = [int(period[-1])]
     elif period == 'halfyear1':
         quarters = [1, 2]
     elif period == 'halfyear2':
         quarters = [3, 4]
-    else:  # year
+    else:
         quarters = [1, 2, 3, 4]
 
     report_data = []
@@ -278,15 +315,13 @@ def teacher_report():
         report_data=report_data
     )
 
-
-# ---------- АДМИН: управление пользователями ----------
+# ---------- АДМИН ----------
 @app.route('/admin', methods=['GET','POST'])
 def admin_page():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
     message = ''
     if request.method == 'POST':
-        # add user
         username = request.form['username'].strip()
         fullname = request.form.get('fullname','').strip()
         password = request.form['password']
@@ -302,7 +337,46 @@ def admin_page():
     users = User.query.all()
     return render_template('admin.html', users=users, message=message)
 
-# ----- CLI: initdb -----
+@app.route('/admin/delete/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if user and user.role != 'admin':   # 🚫 не удаляем админа
+        db.session.delete(user)
+        db.session.commit()
+
+    return redirect(url_for('admin_page'))
+
+
+@app.route('/admin/edit/<int:user_id>', methods=['GET','POST'])
+def edit_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if not user or user.role == 'admin':
+        return redirect(url_for('admin_page'))
+
+    if request.method == 'POST':
+        fullname = request.form.get('fullname','').strip()
+        role = request.form.get('role')
+        password = request.form.get('password','').strip()
+
+        if fullname:
+            user.fullname = fullname
+        if role in ['teacher','student']:
+            user.role = role
+        if password:
+            user.password_hash = generate_password_hash(password)
+
+        db.session.commit()
+        return redirect(url_for('admin_page'))
+
+    return render_template('edit_user.html', user=user)
+
+# ----- CLI -----
 if __name__ == '__main__':
     if 'initdb' in sys.argv:
         with app.app_context():
