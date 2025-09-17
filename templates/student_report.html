@@ -1,25 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Отчёт по ученику за {{ year }} год</h2>
 
-<table border="1" cellpadding="5">
-  <tr>
-    <th>Предмет</th>
-    <th>Средний балл</th>
-  </tr>
-  {% for subj, avg in subject_avgs.items() %}
-  <tr>
-    <td>{{ subj }}</td>
-    <td>{{ avg }}</td>
-  </tr>
-  {% endfor %}
-</table>
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0 rounded-3">
+      <div class="card-body">
+        <h3 class="card-title mb-4 text-center">📊 Отчёт по ученику за {{ year }} год</h3>
 
-{% if overall_avg %}
-  <p><b>Общий средний балл:</b> {{ overall_avg }}</p>
-{% else %}
-  <p>Оценок пока нет.</p>
-{% endif %}
+        {% if subject_avgs %}
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle text-center">
+              <thead class="table-light">
+                <tr>
+                  <th>Предмет</th>
+                  <th>Средний балл</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for subj, avg in subject_avgs.items() %}
+                <tr>
+                  <td class="text-start">{{ subj }}</td>
+                  <td><span class="badge bg-primary fs-6">{{ avg }}</span></td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
 
-<a href="{{ url_for('student_page') }}">← Назад в дневник</a>
+          <div class="alert alert-info mt-3 text-center">
+            <h5>🏆 Общий средний балл: <span class="badge bg-success fs-5">{{ overall_avg }}</span></h5>
+          </div>
+        {% else %}
+          <div class="alert alert-warning text-center">Оценок пока нет.</div>
+        {% endif %}
+
+        <div class="text-center mt-4">
+          <a href="{{ url_for('student_page') }}" class="btn btn-outline-secondary">← Назад в дневник</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

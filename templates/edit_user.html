@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Редактирование пользователя</title>
+</head>
+<body>
+  <h1>Редактирование пользователя: {{ user.username }}</h1>
+
+  <form method="post">
+    <label>ФИО:</label><br>
+    <input type="text" name="fullname" value="{{ user.fullname }}"><br><br>
+
+    <label>Роль:</label><br>
+    <select name="role">
+      <option value="student" {% if user.role == 'student' %}selected{% endif %}>Ученик</option>
+      <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>Учитель</option>
+    </select><br><br>
+
+    <label>Новый пароль (если нужно изменить):</label><br>
+    <input type="password" name="password"><br><br>
+
+    <button type="submit">Сохранить</button>
+    <a href="{{ url_for('admin_page') }}">Отмена</a>
+  </form>
+</body>
+</html>
