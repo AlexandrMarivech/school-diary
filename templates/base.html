@@ -3,60 +3,153 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Электронный дневник</title>
+  <title>Информационная система учёта успеваемости</title>
+
+  <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Наши стили (убери, если файла пока нет) -->
+  <link href="{{ url_for('static', filename='app.css') }}" rel="stylesheet">
+
+  <!-- Небольшие базовые стили (на случай, если app.css ещё пустой) -->
   <style>
-    body { background-color: #f8f9fa; }
-    .navbar { box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .nav-link.active { font-weight: bold; }
-    footer { margin-top: 40px; text-align:center; color:#888; }
+    :root{--brand:#0d6efd}
+    body{background:#f7f8fa}
+    .navbar{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .nav-link.active{font-weight:600}
+    .hero{background:linear-gradient(135deg,var(--brand),#6610f2);color:#fff;border-radius:18px;padding:24px 20px;margin:18px 0}
+    .hero .subtitle{opacity:.85}
+    .layout{margin-top:16px}
+    .sidebar .card{border:0;border-radius:14px}
+    .content .card{border:0;border-radius:14px}
+    footer{margin-top:36px;padding:18px 0;color:#6c757d;border-top:1px solid #e9ecef}
   </style>
 </head>
 <body>
+
+<!-- ====== ХЕДЕР / НАВБАР ====== -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">🏫 Электронный дневник</a>
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('dashboard') }}">
+      <i class="bi bi-mortarboard fs-4 me-2"></i> Электронный дневник
+    </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topnav">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
+    <div class="collapse navbar-collapse" id="topnav">
+      <ul class="navbar-nav me-auto">
 
-        {% if session.get('role') == 'student' %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('student_page') }}">📘 Мои оценки</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('student_report') }}">📊 Отчёт</a></li>
-        {% elif session.get('role') == 'teacher' %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('teacher_page') }}">✏️ Выставить оценки</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('teacher_report') }}">📊 Отчёты</a></li>
-        {% elif session.get('role') == 'admin' %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('teacher_report') }}">📊 Отчёты</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_page') }}">👥 Пользователи</a></li>
+        <!-- Выпадающее «Меню» под разные роли -->
+        {% if session.get('role') %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <i class="bi bi-list"></i> Меню
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-newspaper me-2"></i>Главная</a></li>
+
+            {% if session.get('role') == 'student' %}
+              <li><a class="dropdown-item" href="{{ url_for('student_page') }}"><i class="bi bi-journal-text me-2"></i>Дневник</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('student_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по ученику</a></li>
+
+            {% elif session.get('role') == 'teacher' %}
+              <li><a class="dropdown-item" href="{{ url_for('teacher_page') }}"><i class="bi bi-pencil-square me-2"></i>Ввод оценок</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a></li>
+
+            {% elif session.get('role') == 'admin' %}
+              <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a></li>
+            {% endif %}
+          </ul>
+        </li>
         {% endif %}
 
+        <!-- Быстрые ссылки (под роль) -->
+        {% if session.get('role') == 'student' %}
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='student_page' %}active{% endif %}" href="{{ url_for('student_page') }}">📘 Дневник</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='student_report' %}active{% endif %}" href="{{ url_for('student_report') }}">📊 Отчёты</a></li>
+        {% elif session.get('role') == 'teacher' %}
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='teacher_page' %}active{% endif %}" href="{{ url_for('teacher_page') }}">✏️ Оценки</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='teacher_report' %}active{% endif %}" href="{{ url_for('teacher_report') }}">📊 Отчёты</a></li>
+        {% elif session.get('role') == 'admin' %}
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='admin_page' %}active{% endif %}" href="{{ url_for('admin_page') }}">👥 Пользователи</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='teacher_report' %}active{% endif %}" href="{{ url_for('teacher_report') }}">📊 Отчёты</a></li>
+        {% endif %}
+      </ul>
+
+      <ul class="navbar-nav ms-auto">
         {% if session.get('username') %}
-          <li class="nav-item"><span class="nav-link">👤 {{ session.get('fullname') or session.get('username') }}</span></li>
+          <li class="nav-item"><span class="nav-link">👋 {{ session.get('fullname') or session.get('username') }}</span></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">🚪 Выйти</a></li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Войти</a></li>
         {% endif %}
       </ul>
     </div>
   </div>
 </nav>
 
-<div class="container mt-4">
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="alert alert-info">{{ messages[0] }}</div>
-    {% endif %}
-  {% endwith %}
-  {% block content %}{% endblock %}
+<!-- ====== ГЕРО-БАННЕР (можно переопределить заголовок/подзаголовок из дочернего шаблона) ====== -->
+<div class="container">
+  <div class="hero">
+    <h4 class="m-0">{% block page_title %}Информационная система учёта успеваемости учащихся{% endblock %}</h4>
+    <div class="subtitle">{% block page_subtitle %}Новости, оценки, отчёты — всё в одном месте{% endblock %}</div>
+  </div>
 </div>
 
-<footer>
-  <small>© 2025 Электронный дневник</small>
+<!-- ====== ОСНОВНОЙ КАРКАС: Сайдбар + Контент ====== -->
+<div class="container layout">
+  <div class="row g-3">
+    <aside class="col-lg-3 sidebar">
+      {% block sidebar %}
+      <!-- Сайдбар по умолчанию (можно переопределить на любой странице) -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="text-muted mb-2">Быстрые ссылки</h6>
+          <div class="list-group list-group-flush">
+            <a class="list-group-item list-group-item-action" href="{{ url_for('dashboard') }}"><i class="bi bi-newspaper me-2"></i>Главная</a>
+            {% if session.get('role') == 'student' %}
+              <a class="list-group-item list-group-item-action" href="{{ url_for('student_page') }}"><i class="bi bi-journal-text me-2"></i>Дневник</a>
+              <a class="list-group-item list-group-item-action" href="{{ url_for('student_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по ученику</a>
+            {% elif session.get('role') == 'teacher' %}
+              <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_page') }}"><i class="bi bi-pencil-square me-2"></i>Ввод оценок</a>
+              <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a>
+            {% elif session.get('role') == 'admin' %}
+              <a class="list-group-item list-group-item-action" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a>
+              <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endblock %}
+    </aside>
+
+    <main class="col-lg-9 content">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-info">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}
+      <!-- Контент страницы рендерится здесь -->
+      {% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- ====== ФУТЕР ====== -->
+<footer class="text-center">
+  © 2025 Информационная система учёта успеваемости • Сделано для школы
 </footer>
 
+<!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Доп. скрипты страниц -->
+{% block scripts %}{% endblock %}
 </body>
 </html>
