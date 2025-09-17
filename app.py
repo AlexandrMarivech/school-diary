@@ -6,16 +6,16 @@ import datetime
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = os.environ.get(
-    'SECRET_KEY',
-    'dev-only-CHANGE-ME'
-)
+# --- Конфигурация ---
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-CHANGE-ME')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ----- МОДЕЛИ -----
+# =========================
+#        МОДЕЛИ
+# =========================
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -35,7 +35,9 @@ class Grade(db.Model):
     year = db.Column(db.Integer, nullable=False)
     quarter = db.Column(db.Integer, nullable=False)
 
-# ----- ВСПОМОГАТЕЛЬНЫЕ -----
+# =========================
+#     ВСПОМОГАТЕЛЬНЫЕ
+# =========================
 def current_year():
     return datetime.date.today().year
 
@@ -57,7 +59,7 @@ def create_demo_data():
                    role='teacher', fullname='Иван Иванов (Учитель)')
 
     students = [
-        User(username='student', password_hash=generate_password_hash('stud123'),
+        User(username='student',  password_hash=generate_password_hash('stud123'),
              role='student', fullname='Пётр Петров (Отличник)'),
         User(username='student2', password_hash=generate_password_hash('stud123'),
              role='student', fullname='Анна Смирнова (Хорошистка)'),
@@ -78,19 +80,19 @@ def create_demo_data():
     db.session.add_all([admin, teacher] + students)
     db.session.commit()
 
-    # --- шаблоны оценок для разных "типов" учеников ---
+    # --- шаблоны оценок для разных «типов» учеников ---
     patterns = {
         'Отличник': [5, 5, 5, 5],
         'Хорошистка': [4, 5, 4, 5],
         'Троечник': [3, 3, 3, 3],
         'Середнячка': [3, 4, 3, 4],
         'Смешанные оценки': [3, 4, 5, 4],
-        'Сильна в математике': [3, 4, 5, 4],   # русский/физика средне, математика всегда 5
-        'Слаб по физике': [4, 4, 3, 3],        # физика ниже, остальные нормально
+        'Сильна в математике': [3, 4, 5, 4],  # математика будет 5
+        'Слаб по физике': [4, 4, 3, 3],       # физика будет 3
         'Ольга Васильева': [4, 5, 4, 5],
     }
 
-    # --- добавляем оценки ---
+    # --- добавляем оценки за 4 четверти по 3 предметам ---
     all_subjects = [s1, s2, s3]
     for st in students:
         label = (st.fullname or "").split("(")[-1].replace(")", "").strip()
@@ -98,7 +100,7 @@ def create_demo_data():
 
         for subj in all_subjects:
             for q, val in enumerate(base_pattern, start=1):
-                # спец. правила
+                # спец-правила по подписи:
                 if "математике" in label and subj.name == "Математика":
                     val = 5
                 if "физике" in label and subj.name == "Физика":
@@ -112,7 +114,9 @@ def create_demo_data():
     print("Demo data created. Users: admin/admin123, teacher/teach123, student…student8/stud123")
 
 
-# ----- АВТОРИЗАЦИЯ -----
+# =========================
+#       АВТОРИЗАЦИЯ
+# =========================
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -136,6 +140,14 @@ def login():
             error = 'Неправильный логин или пароль'
     return render_template('login.html', error=error)
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# =========================
+#        ГЛАВНАЯ
+# =========================
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
@@ -143,7 +155,7 @@ def dashboard():
 
     role = session.get('role')
 
-    # здесь добавим тестовые новости
+    # Новости (демо; можно заменить на API)
     news = [
         {
             "title": "Запущена новая школьная олимпиада",
@@ -164,44 +176,19 @@ def dashboard():
             "image": "https://picsum.photos/400/200?random=3"
         }
     ]
+    return render_template("dashboard.html", role=role, news=news)
 
-    return render_template('dashboard.html', role=role, news=news)
-
-
-
-    # демо-новости (позже подключим API)
-    demo_news = [
-        {"title": "Учёные открыли новую планету",
-         "desc": "Астрономы NASA обнаружили потенциально обитаемую экзопланету.",
-         "image": "https://picsum.photos/400/200?random=1",
-         "url": "https://example.com"},
-        {"title": "Искусственный интеллект в школе",
-         "desc": "В школах тестируют систему оценки знаний на базе ИИ.",
-         "image": "https://picsum.photos/400/200?random=2",
-         "url": "https://example.com"},
-        {"title": "Нобелевская премия 2025",
-         "desc": "Лауреаты по физике — исследование квантовых материалов.",
-         "image": "https://picsum.photos/400/200?random=3",
-         "url": "https://example.com"},
-    ]
-
-    if role in ['student', 'teacher']:
-        return render_template("dashboard.html", news=demo_news)
-    elif role == 'admin':
-        return redirect(url_for('admin_page'))
-    else:
-        return "Unknown role", 403
-
-
-# ---------- УЧЕНИК ----------
+# =========================
+#          УЧЕНИК
+# =========================
 @app.route('/student')
 def student_page():
     if 'user_id' not in session or session.get('role') != 'student':
         return redirect(url_for('login'))
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
-    quarter = int(request.args.get('quarter', 0))
-    subject_id = int(request.args.get('subject', 0))
+    quarter = int(request.args.get('quarter', 0))      # 0 = все
+    subject_id = int(request.args.get('subject', 0))   # 0 = все
 
     subjects = Subject.query.all()
     subject_map = {s.id: s.name for s in subjects}
@@ -213,6 +200,7 @@ def student_page():
         q = q.filter_by(subject_id=subject_id)
     grades = q.all()
 
+    # средние по предметам
     avg = {}
     for g in grades:
         subjname = subject_map.get(g.subject_id, '')
@@ -244,13 +232,14 @@ def student_report():
     q = Grade.query.filter_by(student_id=student_id, year=year)
     grades = q.all()
 
+    # средние по предметам
     subject_avgs = {}
     for g in grades:
         subjname = subject_map.get(g.subject_id, '')
         subject_avgs.setdefault(subjname, []).append(g.value)
-
     subject_avgs = {k: round(sum(v)/len(v), 2) for k, v in subject_avgs.items()}
 
+    # общий средний
     all_grades = [g.value for g in grades]
     overall_avg = round(sum(all_grades)/len(all_grades), 2) if all_grades else None
 
@@ -261,7 +250,9 @@ def student_report():
         overall_avg=overall_avg
     )
 
-# ---------- УЧИТЕЛЬ ----------
+# =========================
+#          УЧИТЕЛЬ
+# =========================
 @app.route('/teacher', methods=['GET','POST'])
 def teacher_page():
     if 'user_id' not in session or session.get('role') != 'teacher':
@@ -295,6 +286,7 @@ def export_class():
     quarter = int(request.args.get('quarter', 0))
     subject = Subject.query.get(subject_id)
     students = User.query.filter_by(role='student').all()
+
     si = io.StringIO()
     cw = csv.writer(si)
     cw.writerow(['ФИО ученика','Предмет','Оценки','Средний балл'])
@@ -308,6 +300,7 @@ def export_class():
         avg = round(sum(grades)/len(grades),2) if grades else ''
         subjname = subject.name if subject else 'Все'
         cw.writerow([st.fullname or st.username, subjname, ";".join(map(str,grades)), avg])
+
     output = make_response(si.getvalue())
     output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
     output.headers["Content-type"] = "text/csv; charset=utf-8"
@@ -320,11 +313,12 @@ def teacher_report():
 
     subject_id = int(request.args.get('subject', 0))
     year = int(request.args.get('year', current_year()))
-    period = request.args.get('period', 'year')
+    period = request.args.get('period', 'year')  # quarter1..4, halfyear1/2, year
 
     subjects = Subject.query.all()
     students = User.query.filter_by(role='student').all()
 
+    # какие четверти входят
     if period.startswith('quarter'):
         quarters = [int(period[-1])]
     elif period == 'halfyear1':
@@ -353,7 +347,9 @@ def teacher_report():
         report_data=report_data
     )
 
-# ---------- АДМИН ----------
+# =========================
+#           АДМИН
+# =========================
 @app.route('/admin', methods=['GET','POST'])
 def admin_page():
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -379,42 +375,84 @@ def admin_page():
 def delete_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
-
     user = User.query.get(user_id)
-    if user and user.role != 'admin':   # 🚫 не удаляем админа
+    if user and user.role != 'admin':   # не удаляем админа
         db.session.delete(user)
         db.session.commit()
-
     return redirect(url_for('admin_page'))
 
-
-@app.route('/admin/edit/<int:user_id>', methods=['GET','POST'])
+@app.route('/admin/edit/<int:user_id>', methods=['POST'])
 def edit_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
+    user = User.query.get_or_404(user_id)
 
-    user = User.query.get(user_id)
-    if not user or user.role == 'admin':
-        return redirect(url_for('admin_page'))
+    username = request.form['username'].strip()
+    fullname = request.form.get('fullname', '').strip()
+    role = request.form['role']
+    password = request.form.get('password', '').strip()
 
-    if request.method == 'POST':
-        fullname = request.form.get('fullname','').strip()
-        role = request.form.get('role')
-        password = request.form.get('password','').strip()
+    # проверка уникальности логина
+    existing = User.query.filter(User.username == username, User.id != user.id).first()
+    if existing:
+        users = User.query.all()
+        return render_template('admin.html', users=users,
+                               message='❌ Пользователь с таким логином уже существует')
 
-        if fullname:
-            user.fullname = fullname
-        if role in ['teacher','student']:
-            user.role = role
-        if password:
-            user.password_hash = generate_password_hash(password)
+    # обновление
+    user.username = username
+    user.fullname = fullname
+    user.role = role
+    if password:
+        user.password_hash = generate_password_hash(password)
 
-        db.session.commit()
-        return redirect(url_for('admin_page'))
+    db.session.commit()
+    return redirect(url_for('admin_page'))
 
-    return render_template('edit_user.html', user=user)
+# ---- АДМИН: ОТЧЁТЫ ----
+@app.route('/admin/reports')
+def admin_reports():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
 
-# ----- CLI -----
+    year = int(request.args.get('year', current_year()))
+
+    students = User.query.filter_by(role='student').all()
+    subjects = Subject.query.all()
+    subject_map = {s.id: s.name for s in subjects}
+
+    report_data = []
+    for st in students:
+        rows = Grade.query.filter_by(student_id=st.id, year=year).all()
+        subj_avgs = {}
+        for g in rows:
+            subjname = subject_map.get(g.subject_id, '')
+            subj_avgs.setdefault(subjname, []).append(g.value)
+        subj_avgs = {k: round(sum(v)/len(v), 2) for k, v in subj_avgs.items()}
+        overall_avg = round(sum([g.value for g in rows]) / len(rows), 2) if rows else None
+
+        report_data.append({
+            "student": st.fullname or st.username,
+            "subj_avgs": subj_avgs,
+            "overall": overall_avg
+        })
+
+    total_students = len(students)
+    total_teachers = User.query.filter_by(role='teacher').count()
+    total_admins = User.query.filter_by(role='admin').count()
+
+    return render_template(
+        "admin_reports.html",
+        year=year,
+        report_data=report_data,
+        total_students=total_students,
+        total_teachers=total_teachers,
+        total_admins=total_admins
+    )
+
+# =========================
+#         CLI
+# =========================
 if __name__ == '__main__':
     if 'initdb' in sys.argv:
         with app.app_context():

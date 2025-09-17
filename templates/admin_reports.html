@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block page_title %}Админ — отчёты за {{ year }}{% endblock %}
+{% block page_subtitle %}Сводные данные по ученикам и предметам{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Сводные карточки -->
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Ученики</h6>
+        <div class="display-6">{{ total_students }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Учителя</h6>
+        <div class="display-6">{{ total_teachers }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted">Администраторы</h6>
+        <div class="display-6">{{ total_admins }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="m-0">Средние баллы по ученикам</h5>
+      <form class="d-flex" method="get">
+        <input type="number" class="form-control form-control-sm me-2" name="year" value="{{ year }}" style="width: 120px;">
+        <button class="btn btn-sm btn-primary">Показать</button>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Ученик</th>
+            <th>Средние по предметам</th>
+            <th>Общий средний</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in report_data %}
+          <tr>
+            <td>{{ r.student }}</td>
+            <td>
+              {% if r.subj_avgs %}
+                {% for subj,avg in r.subj_avgs.items() %}
+                  <span class="badge bg-info text-dark me-1 mb-1">{{ subj }}: {{ avg }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="text-muted">нет оценок</span>
+              {% endif %}
+            </td>
+            <td>{% if r.overall %}{{ r.overall }}{% else %}-{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

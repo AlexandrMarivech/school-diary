@@ -119,9 +119,9 @@
               <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_page') }}"><i class="bi bi-pencil-square me-2"></i>Ввод оценок</a>
               <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a>
             {% elif session.get('role') == 'admin' %}
-              <a class="list-group-item list-group-item-action" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a>
-              <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a>
-            {% endif %}
+  <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
+  <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a></li>
+{% endif %}
           </div>
         </div>
       </div>
