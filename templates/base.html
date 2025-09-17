@@ -60,8 +60,9 @@
               <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a></li>
 
             {% elif session.get('role') == 'admin' %}
-              <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a></li>
+  <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
+  <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a></li>
+
             {% endif %}
           </ul>
         </li>
