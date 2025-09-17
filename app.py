@@ -5,11 +5,16 @@ import csv, io, os, sys
 import datetime
 
 app = Flask(__name__)
-# ЗАМЕНИ этот секретный ключ перед выкладкой на публичный хостинг:
-app.config['SECRET_KEY'] = 'change_this_to_a_random_string'
+# ЗАМЕНИТЬ (не забыть) этот секретный ключ перед выкладкой на публичный хостинг:
+import os   # убедись, что наверху файла есть этот импорт
+
+app.config['SECRET_KEY'] = os.environ.get(
+    'SECRET_KEY',
+    'dev-only-CHANGE-ME'  # запасной ключ для локальных тестов
+)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+
 
 # ----- МОДЕЛИ -----
 class User(db.Model):
