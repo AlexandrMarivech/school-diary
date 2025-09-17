@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Отчёт по классу</h2>
+
+<form method="get">
+  <label>Год:
+    <input type="number" name="year" value="{{ year }}">
+  </label>
+  <label>Предмет:
+    <select name="subject">
+      <option value="0">Все</option>
+      {% for subj in subjects %}
+        <option value="{{ subj.id }}" {% if subj.id == subject_id %}selected{% endif %}>{{ subj.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Период:
+    <select name="period">
+      <option value="year" {% if period == 'year' %}selected{% endif %}>Год</option>
+      <option value="halfyear1" {% if period == 'halfyear1' %}selected{% endif %}>1 полугодие</option>
+      <option value="halfyear2" {% if period == 'halfyear2' %}selected{% endif %}>2 полугодие</option>
+      <option value="quarter1" {% if period == 'quarter1' %}selected{% endif %}>1 четверть</option>
+      <option value="quarter2" {% if period == 'quarter2' %}selected{% endif %}>2 четверть</option>
+      <option value="quarter3" {% if period == 'quarter3' %}selected{% endif %}>3 четверть</option>
+      <option value="quarter4" {% if period == 'quarter4' %}selected{% endif %}>4 четверть</option>
+    </select>
+  </label>
+  <button type="submit">Показать</button>
+</form>
+
+<table border="1" cellpadding="5">
+  <tr>
+    <th>ФИО ученика</th>
+    <th>Оценки</th>
+    <th>Средний балл</th>
+  </tr>
+  {% for name, grades, avg in report_data %}
+  <tr>
+    <td>{{ name }}</td>
+    <td>{{ "; ".join(grades|map('string')) }}</td>
+    <td>{% if avg %}{{ avg }}{% else %}-{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<p>
+  <a href="{{ url_for('export_class', subject=subject_id, year=year, quarter=0) }}">⬇ Скачать CSV (год)</a>
+</p>
+
+<a href="{{ url_for('teacher_page') }}">← Назад</a>
+{% endblock %}

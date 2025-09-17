@@ -235,6 +235,49 @@ def export_class():
     output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
     output.headers["Content-type"] = "text/csv; charset=utf-8"
     return output
+    
+    # ---------- ОТЧЁТ УЧИТЕЛЯ ----------
+@app.route('/teacher/report')
+def teacher_report():
+    if 'user_id' not in session or session.get('role') != 'teacher':
+        return redirect(url_for('login'))
+
+    subject_id = int(request.args.get('subject', 0))
+    year = int(request.args.get('year', current_year()))
+    period = request.args.get('period', 'year')  # quarter1, quarter2, halfyear1, halfyear2, year
+
+    subjects = Subject.query.all()
+    students = User.query.filter_by(role='student').all()
+
+    # вычисляем, какие четверти входят в выбранный период
+    if period.startswith('quarter'):
+        quarters = [int(period[-1])]
+    elif period == 'halfyear1':
+        quarters = [1, 2]
+    elif period == 'halfyear2':
+        quarters = [3, 4]
+    else:  # year
+        quarters = [1, 2, 3, 4]
+
+    report_data = []
+    for st in students:
+        q = Grade.query.filter_by(student_id=st.id, year=year)
+        if subject_id != 0:
+            q = q.filter_by(subject_id=subject_id)
+        q = q.filter(Grade.quarter.in_(quarters))
+        grades = [g.value for g in q.all()]
+        avg = round(sum(grades)/len(grades), 2) if grades else None
+        report_data.append((st.fullname or st.username, grades, avg))
+
+    return render_template(
+        'teacher_report.html',
+        subjects=subjects,
+        subject_id=subject_id,
+        year=year,
+        period=period,
+        report_data=report_data
+    )
+
 
 # ---------- АДМИН: управление пользователями ----------
 @app.route('/admin', methods=['GET','POST'])
