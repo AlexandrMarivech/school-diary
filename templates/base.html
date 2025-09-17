@@ -55,15 +55,15 @@
               <li><a class="dropdown-item" href="{{ url_for('student_page') }}"><i class="bi bi-journal-text me-2"></i>Дневник</a></li>
               <li><a class="dropdown-item" href="{{ url_for('student_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по ученику</a></li>
 
-            {% elif session.get('role') == 'teacher' %}
-              <li><a class="dropdown-item" href="{{ url_for('teacher_page') }}"><i class="bi bi-pencil-square me-2"></i>Ввод оценок</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a></li>
+{% elif session.get('role') == 'teacher' %}
+  <li><a class="dropdown-item" href="{{ url_for('teacher_page') }}">Ввод оценок</a></li>
+  <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}">Отчёт по классу</a></li>
 
-            {% elif session.get('role') == 'admin' %}
-  <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
-  <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a></li>
+{% elif session.get('role') == 'admin' %}
+  <li><a class="dropdown-item" href="{{ url_for('admin_page') }}">Пользователи</a></li>
+  <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}">Отчёты</a></li>
+{% endif %}
 
-            {% endif %}
           </ul>
         </li>
         {% endif %}
@@ -115,12 +115,13 @@
             {% if session.get('role') == 'student' %}
               <a class="list-group-item list-group-item-action" href="{{ url_for('student_page') }}"><i class="bi bi-journal-text me-2"></i>Дневник</a>
               <a class="list-group-item list-group-item-action" href="{{ url_for('student_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по ученику</a>
-            {% elif session.get('role') == 'teacher' %}
-              <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_page') }}"><i class="bi bi-pencil-square me-2"></i>Ввод оценок</a>
-              <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a>
-            {% elif session.get('role') == 'admin' %}
-  <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
-  <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Отчёты</a></li>
+{% elif session.get('role') == 'teacher' %}
+  <li><a class="dropdown-item" href="{{ url_for('teacher_page') }}">Ввод оценок</a></li> 
+  <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}">Отчёт по классу</a></li>
+
+{% elif session.get('role') == 'admin' %}
+  <li><a class="dropdown-item" href="{{ url_for('admin_page') }}">Пользователи</a></li>
+  <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}">Отчёты</a></li>
 {% endif %}
           </div>
         </div>
