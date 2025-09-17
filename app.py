@@ -146,14 +146,30 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     role = session.get('role')
-    if role == 'student':
-        return redirect(url_for('student_page'))
-    elif role == 'teacher':
-        return redirect(url_for('teacher_page'))
+
+    # демо-новости (позже подключим API)
+    demo_news = [
+        {"title": "Учёные открыли новую планету",
+         "desc": "Астрономы NASA обнаружили потенциально обитаемую экзопланету.",
+         "image": "https://picsum.photos/400/200?random=1",
+         "url": "https://example.com"},
+        {"title": "Искусственный интеллект в школе",
+         "desc": "В школах тестируют систему оценки знаний на базе ИИ.",
+         "image": "https://picsum.photos/400/200?random=2",
+         "url": "https://example.com"},
+        {"title": "Нобелевская премия 2025",
+         "desc": "Лауреаты по физике — исследование квантовых материалов.",
+         "image": "https://picsum.photos/400/200?random=3",
+         "url": "https://example.com"},
+    ]
+
+    if role in ['student', 'teacher']:
+        return render_template("dashboard.html", news=demo_news)
     elif role == 'admin':
         return redirect(url_for('admin_page'))
     else:
         return "Unknown role", 403
+
 
 # ---------- УЧЕНИК ----------
 @app.route('/student')
