@@ -60,7 +60,6 @@ def create_demo_data():
                  role='admin', fullname='Администратор Школы')
     teacher = User(username='teacher', password_hash=generate_password_hash('teach123'),
                    role='teacher', fullname='Иван Иванов (Учитель)')
-
     students = [
         User(username='student', password_hash=generate_password_hash('stud123'),
              role='student', fullname='Пётр Петров (Отличник)'),
@@ -134,11 +133,14 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
+        flash('Требуется вход', 'danger')
         return redirect(url_for('login'))
 
     role = session.get('role')
+    print(f"Dashboard accessed: role={role}, user_id={session.get('user_id')}")  # Отладка
     if role == 'admin':
-        return redirect(url_for('admin_page'))  # Перенаправление на admin_page для кнопки
+        print("Redirecting admin to /admin")  # Отладка
+        return redirect(url_for('admin_page'))
 
     news = [
         {"title": "Запущена олимпиада", "desc": "Математика и русский язык.", "url": "https://edu.gov.ru/", "image": "https://picsum.photos/400/200?random=1"},
@@ -152,6 +154,7 @@ def dashboard():
 @app.route('/student')
 def student_page():
     if 'user_id' not in session or session.get('role') != 'student':
+        flash('Доступ только для студентов', 'danger')
         return redirect(url_for('login'))
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
@@ -166,13 +169,14 @@ def student_page():
     for g in grades:
         subjname = subject_map.get(g.subject_id, '')
         avg.setdefault(subjname, []).append(g.value)
-    avg = {k: round(sum(v)/len(v), 2) for k, v in avg.items()}
+    avg = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in avg.items()}
 
     return render_template('student.html', grades=grades, avg=avg, year=year)
 
 @app.route('/student/report')
 def student_report():
     if 'user_id' not in session or session.get('role') != 'student':
+        flash('Доступ только для студентов', 'danger')
         return redirect(url_for('login'))
 
     student_id = session['user_id']
@@ -187,7 +191,7 @@ def student_report():
     for g in grades:
         subjname = subject_map.get(g.subject_id, '')
         subj_avgs.setdefault(subjname, []).append(g.value)
-    subj_avgs = {k: round(sum(v)/len(v), 2) for k, v in subj_avgs.items()}
+    subj_avgs = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in subj_avgs.items()}
     overall = round(sum([g.value for g in grades])/len(grades), 2) if grades else 0
 
     return render_template('student_report.html', year=year,
@@ -199,7 +203,7 @@ def student_report():
 @app.route('/admin', methods=['GET','POST'])
 def admin_page():
     if 'user_id' not in session or session.get('role') != 'admin':
-        flash('Доступ запрещён', 'danger')
+        flash('Доступ только для админов', 'danger')
         return redirect(url_for('login'))
     message = ''
     if request.method == 'POST':
@@ -207,7 +211,7 @@ def admin_page():
         fullname = request.form.get('fullname','').strip()
         password = request.form['password'].strip()
         role = request.form['role']
-        if username and password and len(password) > 4 and role:
+        if username and password and len(password) > 4 and role in ['student','teacher','admin']:
             if User.query.filter_by(username=username).first():
                 message = 'Пользователь с таким логином уже существует'
                 flash(message, 'danger')
@@ -218,15 +222,16 @@ def admin_page():
                 message = 'Пользователь создан'
                 flash(message, 'success')
         else:
-            message = 'Неверные данные (пароль >4 символов)'
+            message = 'Неверные данные (пароль >4 символов, роль корректна)'
             flash(message, 'danger')
     users = User.query.all()
+    print(f"Admin page accessed: users found={len(users)}")  # Отладка
     return render_template('admin.html', users=users, message=message)
 
 @app.route('/admin/reports')
 def admin_reports():
     if 'user_id' not in session or session.get('role') != 'admin':
-        flash('Доступ запрещён', 'danger')
+        flash('Доступ только для админов', 'danger')
         return redirect(url_for('login'))
 
     try:
@@ -237,8 +242,16 @@ def admin_reports():
 
         students = User.query.filter_by(role='student').all()
         subjects = Subject.query.all()
-        subject_map = {s.id: s.name for s in subjects}
+        print(f"Reports accessed: year={year}, students={len(students)}, subjects={len(subjects)}")  # Отладка
 
+        if not subjects:
+            flash('Нет предметов в базе. Запустите python app.py initdb', 'danger')
+            return redirect(url_for('admin_page'))
+        if not students:
+            flash('Нет студентов в базе. Добавьте пользователей', 'danger')
+            return redirect(url_for('admin_page'))
+
+        subject_map = {s.id: s.name for s in subjects}
         report_data = []
         for st in students:
             q = Grade.query.filter_by(student_id=st.id, year=year).all()
@@ -248,103 +261,123 @@ def admin_reports():
                 subj_avgs.setdefault(subjname, []).append(g.value)
             subj_avgs = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in subj_avgs.items()}
             overall_avg = round(sum([g.value for g in q])/len(q), 2) if q else 0
-            report_data.append({"student": st.fullname or st.username,
-                                "subj_avgs": subj_avgs,
-                                "overall": overall_avg})
+            report_data.append({
+                "student": st.fullname or st.username,
+                "subj_avgs": subj_avgs,
+                "overall": overall_avg
+            })
 
-        return render_template("admin_reports.html", year=year,
-                               report_data=report_data, total_students=len(students),
-                               subjects=subjects)
+        return render_template(
+            "admin_reports.html",
+            year=year,
+            report_data=report_data,
+            total_students=len(students),
+            subjects=subjects
+        )
+    except ZeroDivisionError:
+        flash('Ошибка: нет оценок для выбранного года', 'danger')
+        return redirect(url_for('admin_page'))
     except Exception as e:
         flash(f'Ошибка отчёта: {str(e)}', 'danger')
+        print(f"Reports error: {str(e)}")  # Отладка
         return redirect(url_for('admin_page'))
 
 @app.route('/admin/edit/<int:user_id>', methods=['POST'])
 def edit_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
-        flash('Доступ запрещён', 'danger')
+        flash('Доступ только для админов', 'danger')
         return redirect(url_for('login'))
 
-    user = User.query.get_or_404(user_id)
-    username = request.form['username'].strip()
-    fullname = request.form.get('fullname', '').strip()
-    role = request.form['role']
-    password = request.form.get('password', '').strip()
+    try:
+        user = User.query.get_or_404(user_id)
+        username = request.form['username'].strip()
+        fullname = request.form.get('fullname', '').strip()
+        role = request.form['role']
+        password = request.form.get('password', '').strip()
 
-    if username != user.username:
-        existing = User.query.filter(User.username == username, User.id != user.id).first()
-        if existing:
-            flash('Логин уже существует', 'danger')
+        if username != user.username:
+            existing = User.query.filter(User.username == username, User.id != user.id).first()
+            if existing:
+                flash('Логин уже существует', 'danger')
+                return redirect(url_for('admin_page'))
+
+        if password and len(password) <= 4:
+            flash('Пароль слишком короткий (>4 символов)', 'danger')
             return redirect(url_for('admin_page'))
 
-    if password and len(password) <= 4:
-        flash('Пароль слишком короткий', 'danger')
-        return redirect(url_for('admin_page'))
+        user.username = username
+        user.fullname = fullname
+        user.role = role
+        if password:
+            user.password_hash = generate_password_hash(password)
 
-    user.username = username
-    user.fullname = fullname
-    user.role = role
-    if password:
-        user.password_hash = generate_password_hash(password)
-
-    db.session.commit()
-    flash('Пользователь обновлён', 'success')
+        db.session.commit()
+        flash('Пользователь обновлён', 'success')
+    except Exception as e:
+        flash(f'Ошибка редактирования: {str(e)}', 'danger')
     return redirect(url_for('admin_page'))
 
 @app.route('/admin/delete/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
-        flash('Доступ запрещён', 'danger')
+        flash('Доступ только для админов', 'danger')
         return redirect(url_for('login'))
 
-    user = User.query.get_or_404(user_id)
-    if user.role == 'admin':
-        flash('Нельзя удалить админа', 'danger')
-        return redirect(url_for('admin_page'))
+    try:
+        user = User.query.get_or_404(user_id)
+        if user.role == 'admin':
+            flash('Нельзя удалить админа', 'danger')
+            return redirect(url_for('admin_page'))
 
-    db.session.delete(user)
-    db.session.commit()
-    flash('Пользователь удалён', 'success')
+        db.session.delete(user)
+        db.session.commit()
+        flash('Пользователь удалён', 'success')
+    except Exception as e:
+        flash(f'Ошибка удаления: {str(e)}', 'danger')
     return redirect(url_for('admin_page'))
 
-# Тестовый маршрут для дашборда (оставляем оригинальную кнопку в покое)
 @app.route('/admin/test_dashboard')
 def test_dashboard():
     if 'user_id' not in session or session.get('role') != 'admin':
-        flash('Доступ запрещён', 'danger')
+        flash('Доступ только для админов', 'danger')
         return redirect(url_for('login'))
     message = f'Тестовый дашборд работает! Роль: {session.get("role")}, Пользователь: {session.get("username")}'
+    print("Test dashboard accessed")  # Отладка
     return render_template('test_dashboard.html', message=message)
 
 @app.route('/export/class')
 def export_class():
     if 'user_id' not in session or session.get('role') not in ['teacher','admin']:
-        flash('Доступ запрещён', 'danger')
+        flash('Доступ только для учителей/админов', 'danger')
         return redirect(url_for('login'))
-    subject_id = int(request.args.get('subject', 0))
-    year = int(request.args.get('year', current_year()))
-    quarter = int(request.args.get('quarter', 0))
-    subject = Subject.query.get(subject_id) if subject_id else None
-    students = User.query.filter_by(role='student').all()
+    try:
+        subject_id = int(request.args.get('subject', 0))
+        year = int(request.args.get('year', current_year()))
+        quarter = int(request.args.get('quarter', 0))
+        subject = Subject.query.get(subject_id) if subject_id else None
+        students = User.query.filter_by(role='student').all()
 
-    si = io.StringIO()
-    cw = csv.writer(si)
-    cw.writerow(['ФИО ученика','Предмет','Оценки','Средний балл'])
-    for st in students:
-        q = Grade.query.filter_by(student_id=st.id, year=year)
-        if quarter != 0:
-            q = q.filter_by(quarter=quarter)
-        if subject_id != 0:
-            q = q.filter_by(subject_id=subject_id)
-        grades = [g.value for g in q.all()]
-        avg = round(sum(grades)/len(grades),2) if grades else ''
-        subjname = subject.name if subject else 'Все'
-        cw.writerow([st.fullname or st.username, subjname, ";".join(map(str,grades)), avg])
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerow(['ФИО ученика','Предмет','Оценки','Средний балл'])
+        for st in students:
+            q = Grade.query.filter_by(student_id=st.id, year=year)
+            if quarter != 0:
+                q = q.filter_by(quarter=quarter)
+            if subject_id != 0:
+                q = q.filter_by(subject_id=subject_id)
+            grades = [g.value for g in q.all()]
+            avg = round(sum(grades)/len(grades),2) if grades else ''
+            subjname = subject.name if subject else 'Все'
+            cw.writerow([st.fullname or st.username, subjname, ";".join(map(str,grades)), avg])
 
-    output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
-    output.headers["Content-type"] = "text/csv; charset=utf-8"
-    return output
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
+        output.headers["Content-type"] = "text/csv; charset=utf-8"
+        return output
+    except Exception as e:
+        flash(f'Ошибка экспорта: {str(e)}', 'danger')
+        return redirect(url_for('admin_reports'))
 
 # =========================
 # CLI

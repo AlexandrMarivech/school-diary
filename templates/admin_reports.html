@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block page_title %}📊 Учёт успеваемости — отчёты администратора{% endblock %}
-{% block page_subtitle %}Средние баллы по ученикам за выбранный год{% endblock %}
+{% block page_subtitle %}Средние баллы по ученикам за {{ year }} год{% endblock %}
 
 {% block content %}
 <!-- Flash-сообщения -->
@@ -23,7 +23,7 @@
         <label class="col-form-label">Год</label>
       </div>
       <div class="col-auto">
-        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2000" max="2030">
+        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2000" max="{{ current_year() + 1 }}">
       </div>
       <div class="col-auto">
         <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Показать</button>
@@ -42,39 +42,35 @@
     </div>
 
     <div class="table-responsive">
-      {% if report_data %}
-      <table class="table table-striped align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Ученик</th>
-            {% if subjects %}
+      {% if report_data and subjects %}
+        <table class="table table-striped align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Ученик</th>
               {% for subject in subjects %}
                 <th>{{ subject.name }}</th>
               {% endfor %}
-            {% endif %}
-            <th>Общий средний</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in report_data %}
-          <tr>
-            <td>{{ row.student }}</td>
-            {% if subjects %}
+              <th>Общий средний</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in report_data %}
+            <tr>
+              <td>{{ row.student }}</td>
               {% for subject in subjects %}
                 <td>{{ row.subj_avgs.get(subject.name, '-') }}</td>
               {% endfor %}
-            {% endif %}
-            <td>{% if row.overall %}{{ row.overall }}{% else %}-{% endif %}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              <td>{{ row.overall if row.overall else '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
-        <p class="text-muted">Нет данных за {{ year }} год. Создайте демо-данные или добавьте оценки.</p>
+        <p class="text-muted">Нет данных за {{ year }} год. Запустите <code>python app.py initdb</code> или добавьте студентов/оценки.</p>
       {% endif %}
     </div>
   </div>
 </div>
 
-<a href="{{ url_for('admin_page') }}" class="btn btn-secondary mt-3">Назад к администрированию</a>
+<a href="{{ url_for('admin_page') }}" class="btn btn-secondary mt-3">Назад</a>
 {% endblock %}
