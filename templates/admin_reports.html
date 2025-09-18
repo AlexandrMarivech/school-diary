@@ -4,6 +4,15 @@
 {% block page_subtitle %}Средние баллы по ученикам за выбранный год{% endblock %}
 
 {% block content %}
+<!-- Flash-сообщения -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <form class="row g-2" method="get" action="{{ url_for('admin_reports') }}">
@@ -11,7 +20,7 @@
         <label class="col-form-label">Год</label>
       </div>
       <div class="col-auto">
-        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}">
+        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2000" max="{{ current_year() + 1 }}">
       </div>
       <div class="col-auto">
         <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Показать</button>
@@ -34,7 +43,9 @@
         <thead class="table-light">
           <tr>
             <th>Ученик</th>
-            <th>Средние по предметам</th>
+            {% for subject in subjects %}
+              <th>{{ subject.name }}</th>
+            {% endfor %}
             <th>Общий средний</th>
           </tr>
         </thead>
@@ -42,22 +53,17 @@
         {% for row in report_data %}
           <tr>
             <td>{{ row.student }}</td>
-            <td>
-              {% if row.subj_avgs %}
-                <ul class="mb-0">
-                  {% for subj,avg in row.subj_avgs.items() %}
-                    <li><strong>{{ subj }}</strong>: {{ avg }}</li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                —
-              {% endif %}
-            </td>
-            <td>{% if row.overall %}{{ row.overall }}{% else %}—{% endif %}</td>
+            {% for subject in subjects %}
+              <td>{{ row.subj_avgs.get(subject.name, '-') }}</td>
+            {% endfor %}
+            <td>{{ row.overall|default('-') }}</td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
+      {% if not report_data %}
+        <p class="text-muted">Нет данных за {{ year }} год</p>
+      {% endif %}
     </div>
   </div>
 </div>
