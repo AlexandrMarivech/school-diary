@@ -153,28 +153,34 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # Демонстрационные новости (видны всем ролям)
+    role = session.get('role')
+
+    # Админов сразу ведём в раздел отчетов
+    if role == 'admin':
+        return redirect(url_for('admin_reports'))
+
+    # Тестовые новости (видят студент/учитель)
     news = [
         {
-            "title": "Школьная олимпиада стартовала",
-            "desc": "Олимпиада по математике и русскому — участвуйте!",
+            "title": "Запущена новая школьная олимпиада",
+            "desc": "Ученики могут принять участие в олимпиаде по математике и русскому языку.",
             "url": "https://edu.gov.ru/",
-            "image": "https://picsum.photos/400/200?random=101"
+            "image": "https://picsum.photos/400/200?random=1"
         },
         {
             "title": "Обновления сайта",
-            "desc": "Добавлены отчёты и улучшен дизайн.",
+            "desc": "Теперь доступен отчёт по ученику и отчёт по классу.",
             "url": "https://github.com/AlexandrMarivech/school-diary",
-            "image": "https://picsum.photos/400/200?random=102"
+            "image": "https://picsum.photos/400/200?random=2"
         },
         {
             "title": "Новости науки",
-            "desc": "Создан новый материал с уникальными свойствами.",
+            "desc": "Учёные создали новый материал, который может заменить пластик.",
             "url": "https://nplus1.ru/",
-            "image": "https://picsum.photos/400/200?random=103"
+            "image": "https://picsum.photos/400/200?random=3"
         }
     ]
-    return render_template("dashboard.html", news=news)
+    return render_template("dashboard.html", role=role, news=news)
 
 
 # =========================
