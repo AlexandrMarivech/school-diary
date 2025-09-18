@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block html_title %}Электронный дневник — панель{% endblock %}</title>
 
-  <!-- Красивый готовый темы Bootstrap (Bootswatch "Cosmo") -->
+  <!-- Готовая тема Bootswatch: Cosmo -->
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/cosmo/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -49,11 +49,9 @@
               <li><a class="dropdown-item" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a></li>
 
             {% elif session.get('role') == 'admin' %}
-  <a class="list-group-item list-group-item-action" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a>
-  <a class="list-group-item list-group-item-action" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Учёт успеваемости</a>
-{% endif %}
-
-
+              <li><a class="dropdown-item" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Учёт успеваемости</a></li>
+            {% endif %}
           </ul>
         </li>
         {% endif %}
@@ -87,18 +85,19 @@
           <h6 class="text-muted mb-3">Быстрые ссылки</h6>
           <div class="list-group list-group-flush">
             <a class="list-group-item list-group-item-action" href="{{ url_for('dashboard') }}"><i class="bi bi-newspaper me-2"></i>Главная</a>
+
             {% if session.get('role') == 'student' %}
               <a class="list-group-item list-group-item-action" href="{{ url_for('student_page') }}"><i class="bi bi-journal-text me-2"></i>Дневник</a>
               <a class="list-group-item list-group-item-action" href="{{ url_for('student_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по ученику</a>
+
             {% elif session.get('role') == 'teacher' %}
               <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_page') }}"><i class="bi bi-pencil-square me-2"></i>Ввод оценок</a>
               <a class="list-group-item list-group-item-action" href="{{ url_for('teacher_report') }}"><i class="bi bi-graph-up me-2"></i>Отчёт по классу</a>
+
             {% elif session.get('role') == 'admin' %}
-  <a class="list-group-item list-group-item-action" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a>
-  <a class="list-group-item list-group-item-action" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Учёт успеваемости</a>
-{% endif %}
-
-
+              <a class="list-group-item list-group-item-action" href="{{ url_for('admin_page') }}"><i class="bi bi-people me-2"></i>Пользователи</a>
+              <a class="list-group-item list-group-item-action" href="{{ url_for('admin_reports') }}"><i class="bi bi-graph-up me-2"></i>Учёт успеваемости</a>
+            {% endif %}
           </div>
         </div>
       </div>

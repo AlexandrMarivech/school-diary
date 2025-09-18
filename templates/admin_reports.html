@@ -1,44 +1,32 @@
 {% extends "base.html" %}
-{% block page_title %}Админ — отчёты за {{ year }}{% endblock %}
-{% block page_subtitle %}Сводные данные по ученикам и предметам{% endblock %}
+
+{% block page_title %}📊 Учёт успеваемости — отчёты администратора{% endblock %}
+{% block page_subtitle %}Средние баллы по ученикам за выбранный год{% endblock %}
 
 {% block content %}
-<div class="row g-3">
-  <!-- Сводные карточки -->
-  <div class="col-md-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Ученики</h6>
-        <div class="display-6">{{ total_students }}</div>
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <form class="row g-2" method="get" action="{{ url_for('admin_reports') }}">
+      <div class="col-auto">
+        <label class="col-form-label">Год</label>
       </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Учителя</h6>
-        <div class="display-6">{{ total_teachers }}</div>
+      <div class="col-auto">
+        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}">
       </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted">Администраторы</h6>
-        <div class="display-6">{{ total_admins }}</div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Показать</button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 
-<div class="card shadow-sm mt-4">
+<div class="card shadow-sm">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="m-0">Средние баллы по ученикам</h5>
-      <form class="d-flex" method="get">
-        <input type="number" class="form-control form-control-sm me-2" name="year" value="{{ year }}" style="width: 120px;">
-        <button class="btn btn-sm btn-primary">Показать</button>
-      </form>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="card-title m-0">Итоги по ученикам (всего: {{ total_students }})</h5>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_class', subject=0, year=year, quarter=0) }}">
+        ⬇ Скачать CSV (все предметы, год)
+      </a>
     </div>
 
     <div class="table-responsive">
@@ -51,25 +39,26 @@
           </tr>
         </thead>
         <tbody>
-          {% for r in report_data %}
+        {% for row in report_data %}
           <tr>
-            <td>{{ r.student }}</td>
+            <td>{{ row.student }}</td>
             <td>
-              {% if r.subj_avgs %}
-                {% for subj,avg in r.subj_avgs.items() %}
-                  <span class="badge bg-info text-dark me-1 mb-1">{{ subj }}: {{ avg }}</span>
-                {% endfor %}
+              {% if row.subj_avgs %}
+                <ul class="mb-0">
+                  {% for subj,avg in row.subj_avgs.items() %}
+                    <li><strong>{{ subj }}</strong>: {{ avg }}</li>
+                  {% endfor %}
+                </ul>
               {% else %}
-                <span class="text-muted">нет оценок</span>
+                —
               {% endif %}
             </td>
-            <td>{% if r.overall %}{{ r.overall }}{% else %}-{% endif %}</td>
+            <td>{% if row.overall %}{{ row.overall }}{% else %}—{% endif %}</td>
           </tr>
-          {% endfor %}
+        {% endfor %}
         </tbody>
       </table>
     </div>
-
   </div>
 </div>
 {% endblock %}
