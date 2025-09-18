@@ -155,11 +155,11 @@ def dashboard():
 
     role = session.get('role')
 
-    # Админов сразу ведём в раздел отчетов
+    # Админа сразу ведём в отчёты
     if role == 'admin':
         return redirect(url_for('admin_reports'))
 
-    # Тестовые новости (видят студент/учитель)
+    # Новости для студента/учителя
     news = [
         {
             "title": "Запущена новая школьная олимпиада",
@@ -181,6 +181,7 @@ def dashboard():
         }
     ]
     return render_template("dashboard.html", role=role, news=news)
+
 
 
 # =========================
@@ -415,45 +416,54 @@ def edit_user(user_id):
     return redirect(url_for('admin_page'))
 
 # ---- АДМИН: ОТЧЁТЫ ----
-@app.route('/admin/reports')
+# страница отчётов админа
+@app.route('/admin/reports', methods=['GET'], endpoint='admin_reports')
 def admin_reports():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
+    # ... текущая логика формирования отчёта ...
+    return render_template("admin_reports.html", year=year, report_data=report_data, total_students=total_students)
 
-    year = int(request.args.get('year', current_year()))
 
-    students = User.query.filter_by(role='student').all()
-    subjects = Subject.query.all()
-    subject_map = {s.id: s.name for s in subjects}
+# удалить пользователя
+@app.route('/admin/delete/<int:user_id>', methods=['POST'], endpoint='delete_user')
+def delete_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    user = User.query.get(user_id)
+    if user and user.role != 'admin':
+        db.session.delete(user)
+        db.session.commit()
+    return redirect(url_for('admin_page'))
 
-    report_data = []
-    for st in students:
-        rows = Grade.query.filter_by(student_id=st.id, year=year).all()
-        subj_avgs = {}
-        for g in rows:
-            subjname = subject_map.get(g.subject_id, '')
-            subj_avgs.setdefault(subjname, []).append(g.value)
-        subj_avgs = {k: round(sum(v)/len(v), 2) for k, v in subj_avgs.items()}
-        overall_avg = round(sum([g.value for g in rows]) / len(rows), 2) if rows else None
 
-        report_data.append({
-            "student": st.fullname or st.username,
-            "subj_avgs": subj_avgs,
-            "overall": overall_avg
-        })
+# inline-редактирование пользователя
+@app.route('/admin/edit/<int:user_id>', methods=['POST'], endpoint='edit_user')
+def edit_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
 
-    total_students = len(students)
-    total_teachers = User.query.filter_by(role='teacher').count()
-    total_admins = User.query.filter_by(role='admin').count()
+    user = User.query.get_or_404(user_id)
+    username = request.form['username'].strip()
+    fullname = request.form.get('fullname', '').strip()
+    role = request.form['role']
+    password = request.form.get('password', '').strip()
 
-    return render_template(
-        "admin_reports.html",
-        year=year,
-        report_data=report_data,
-        total_students=total_students,
-        total_teachers=total_teachers,
-        total_admins=total_admins
-    )
+    existing = User.query.filter(User.username == username, User.id != user.id).first()
+    if existing:
+        users = User.query.all()
+        return render_template('admin.html', users=users,
+                               message='❌ Пользователь с таким логином уже существует')
+
+    user.username = username
+    user.fullname = fullname
+    user.role = role
+    if password:
+        user.password_hash = generate_password_hash(password)
+
+    db.session.commit()
+    return redirect(url_for('admin_page'))
+
 
 # =========================
 #         CLI
