@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import csv, io, os, sys
@@ -100,7 +100,6 @@ def create_demo_data():
 
         for subj in all_subjects:
             for q, val in enumerate(base_pattern, start=1):
-                # спец-правила по подписи:
                 if "математике" in label and subj.name == "Математика":
                     val = 5
                 if "физике" in label and subj.name == "Физика":
@@ -112,7 +111,6 @@ def create_demo_data():
 
     db.session.commit()
     print("Demo data created. Users: admin/admin123, teacher/teach123, student…student8/stud123")
-
 
 # =========================
 #       АВТОРИЗАЦИЯ
@@ -181,8 +179,6 @@ def dashboard():
         }
     ]
     return render_template("dashboard.html", role=role, news=news)
-
-
 
 # =========================
 #          УЧЕНИК
@@ -381,67 +377,57 @@ def admin_page():
 def delete_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
-    user = User.query.get(user_id)
-    if user and user.role != 'admin':   # не удаляем админа
-        db.session.delete(user)
-        db.session.commit()
+
+    user = User.query.get_or_404(user_id)
+    if user.role == 'admin':
+        flash('Нельзя удалить администратора!')
+        return redirect(url_for('admin_page'))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'Пользователь {user.username} удалён')
     return redirect(url_for('admin_page'))
 
+# ---- АДМИН: ОТЧЁТЫ ----
+@app.route('/admin/reports', methods=['GET'])
+def admin_reports():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+
+    year = int(request.args.get('year', current_year()))
+    students = User.query.filter_by(role='student').all()
+    subjects = Subject.query.all()
+    subject_map = {s.id: s.name for s in subjects}
+
+    report_data = []
+    for st in students:
+        q = Grade.query.filter_by(student_id=st.id, year=year).all()
+        subj_avgs = {}
+        for g in q:
+            subjname = subject_map.get(g.subject_id, '')
+            subj_avgs.setdefault(subjname, []).append(g.value)
+        subj_avgs = {k: round(sum(v)/len(v), 2) for k, v in subj_avgs.items()}
+        overall_avg = round(sum([g.value for g in q])/len(q), 2) if q else None
+        report_data.append({
+            "student": st.fullname or st.username,
+            "subj_avgs": subj_avgs,
+            "overall": overall_avg
+        })
+
+    total_students = len(students)
+
+    return render_template(
+        "admin_reports.html",
+        year=year,
+        report_data=report_data,
+        total_students=total_students
+    )
+
+# inline-редактирование пользователя
 @app.route('/admin/edit/<int:user_id>', methods=['POST'])
 def edit_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
-    user = User.query.get_or_404(user_id)
-
-    username = request.form['username'].strip()
-    fullname = request.form.get('fullname', '').strip()
-    role = request.form['role']
-    password = request.form.get('password', '').strip()
-
-    # проверка уникальности логина
-    existing = User.query.filter(User.username == username, User.id != user.id).first()
-    if existing:
-        users = User.query.all()
-        return render_template('admin.html', users=users,
-                               message='❌ Пользователь с таким логином уже существует')
-
-    # обновление
-    user.username = username
-    user.fullname = fullname
-    user.role = role
-    if password:
-        user.password_hash = generate_password_hash(password)
-
-    db.session.commit()
-    return redirect(url_for('admin_page'))
-
-# ---- АДМИН: ОТЧЁТЫ ----
-# страница отчётов админа
-@app.route('/admin/reports', methods=['GET'], endpoint='admin_reports')
-def admin_reports():
-    if 'user_id' not in session or session.get('role') != 'admin':
-        return redirect(url_for('login'))
-    # ... текущая логика формирования отчёта ...
-    return render_template("admin_reports.html", year=year, report_data=report_data, total_students=total_students)
-
-
-# удалить пользователя
-@app.route('/admin/delete/<int:user_id>', methods=['POST'], endpoint='delete_user')
-def delete_user(user_id):
-    if 'user_id' not in session or session.get('role') != 'admin':
-        return redirect(url_for('login'))
-    user = User.query.get(user_id)
-    if user and user.role != 'admin':
-        db.session.delete(user)
-        db.session.commit()
-    return redirect(url_for('admin_page'))
-
-
-# inline-редактирование пользователя
-@app.route('/admin/edit/<int:user_id>', methods=['POST'], endpoint='edit_user')
-def edit_user(user_id):
-    if 'user_id' not in session or session.get('role') != 'admin':
-        return redirect(url_for('login'))
 
     user = User.query.get_or_404(user_id)
     username = request.form['username'].strip()
@@ -463,7 +449,6 @@ def edit_user(user_id):
 
     db.session.commit()
     return redirect(url_for('admin_page'))
-
 
 # =========================
 #         CLI
