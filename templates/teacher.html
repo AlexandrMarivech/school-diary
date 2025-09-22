@@ -1,102 +1,101 @@
 {% extends "base.html" %}
+{% block page_title %}👨‍🏫 Учитель — ввод оценок{% endblock %}
+{% block page_subtitle %}Выставление оценок по предметам{% endblock %}
+
 {% block content %}
-
-<div class="row">
-  <div class="col-lg-12">
-    <div class="card shadow-sm border-0 rounded-3 mb-4">
-      <div class="card-body">
-        <h4 class="card-title mb-3">👨‍🏫 Учитель — ввод оценок</h4>
-        {% if message %}
-          <div class="alert alert-success">{{ message }}</div>
-        {% endif %}
-
-        <form method="post">
-          <div class="row g-3 mb-3">
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <h5 class="card-title">📋 Ввод оценок</h5>
+        <form method="post" class="row g-3">
             <div class="col-md-3">
-              <label class="form-label fw-semibold">Предмет</label>
-              <select name="subject" class="form-select form-select-sm">
-                {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
-              </select>
+                <label class="form-label">Предмет</label>
+                <select name="subject_id" class="form-select" required>
+                    {% for s in subjects %}
+                        <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Год</label>
-              <input name="year" value="{{ current_year() }}" class="form-control form-control-sm">
+            <div class="col-md-2">
+                <label class="form-label">Год</label>
+                <input type="number" name="year" class="form-control" value="{{ current_year() }}" min="2000" max="{{ current_year() }}" required>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Четверть</label>
-              <input name="quarter" value="1" class="form-control form-control-sm">
+            <div class="col-md-2">
+                <label class="form-label">Четверть</label>
+                <select name="quarter" class="form-select" required>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Неделя</label>
-              <input name="week" value="1" class="form-control form-control-sm">
-              <div class="form-text">Например: 1..10</div>
+            <div class="col-md-2">
+                <label class="form-label">Неделя</label>
+                <input type="number" name="week" class="form-control" value="1" min="1" max="52" required>
             </div>
-          </div>
-
-          <h5 class="mt-4">📋 Список учеников</h5>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>Ученик</th>
-                  <th style="width:200px;">Оценка</th>
-                </tr>
-              </thead>
-              <tbody>
-              {% for st in students %}
-                <tr>
-                  <td>{{ st.fullname or st.username }}</td>
-                  <td>
-                    <input name="student_{{ st.id }}" class="form-control form-control-sm" placeholder="например 4">
-                  </td>
-                </tr>
-              {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <button class="btn btn-primary mt-3">💾 Сохранить оценки</button>
+            <div class="col-12">
+                <h6>Список учеников</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Ученик</th>
+                                <th>Оценка</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for st in students %}
+                                <tr>
+                                    <td>{{ st.fullname or st.username }}</td>
+                                    <td>
+                                        <input type="number" name="grade_{{ st.id }}" class="form-control form-control-sm" min="2" max="5" placeholder="2-5">
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-success">💾 Сохранить оценки</button>
+            </div>
         </form>
-      </div>
     </div>
-  </div>
 </div>
 
-<!-- Экспорт -->
-<div class="row">
-  <div class="col-lg-12">
-    <div class="card shadow-sm border-0 rounded-3">
-      <div class="card-body">
-        <h5 class="card-title mb-3">📤 Экспорт отчёта</h5>
-        <form method="get" action="{{ url_for('export_teacher_xlsx') }}">
-          <div class="row g-3 mb-3">
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">📤 Экспорт отчёта</h5>
+        <form class="row g-3" method="get" action="{{ url_for('teacher_report') }}">
             <div class="col-md-3">
-              <label class="form-label fw-semibold">Предмет</label>
-              <select name="subject" class="form-select form-select-sm">
-                <option value="0">Все</option>
-                {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
-              </select>
+                <label class="form-label">Предмет</label>
+                <select name="subject" class="form-select">
+                    <option value="0">Все</option>
+                    {% for s in subjects %}
+                        <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Год</label>
-              <input name="year" value="{{ current_year() }}" class="form-control form-control-sm">
+            <div class="col-md-2">
+                <label class="form-label">Год</label>
+                <input type="number" name="year" class="form-control" value="{{ current_year() }}" min="2000" max="{{ current_year() }}">
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Четверть</label>
-              <input name="quarter" value="0" class="form-control form-control-sm">
-              <div class="form-text">0 = все четверти</div>
+            <div class="col-md-2">
+                <label class="form-label">Период</label>
+                <select name="period" class="form-select">
+                    <option value="year">Год</option>
+                    <option value="q1">1 полугодие</option>
+                    <option value="q2">2 полугодие</option>
+                    <option value="1">1 четверть</option>
+                    <option value="2">2 четверть</option>
+                    <option value="3">3 четверть</option>
+                    <option value="4">4 четверть</option>
+                </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Неделя</label>
-              <input name="week" value="0" class="form-control form-control-sm">
-              <div class="form-text">0 = все недели</div>
+            <div class="col-md-5">
+                <button class="btn btn-primary mt-4"><i class="bi bi-search"></i> Показать</button>
+                <a class="btn btn-outline-secondary mt-4" href="{{ url_for('export_class', subject=request.args.get('subject', 0), year=request.args.get('year', current_year()), quarter=request.args.get('quarter', 0)) }}">
+                    ⬇️ Скачать CSV
+                </a>
             </div>
-          </div>
-          <button class="btn btn-outline-secondary">⬇️ Скачать отчёт в Excel</button>
-          <a href="{{ url_for('teacher_report') }}" class="btn btn-outline-primary ms-2">📊 Отчёт по классу</a>
         </form>
-      </div>
     </div>
-  </div>
 </div>
-
 {% endblock %}

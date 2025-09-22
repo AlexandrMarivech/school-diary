@@ -1,88 +1,77 @@
 {% extends "base.html" %}
+{% block page_title %}📊 Отчёт по классу{% endblock %}
+{% block page_subtitle %}Оценки за {{ year }} год{% endblock %}
+
 {% block content %}
-
-<div class="row justify-content-center">
-  <div class="col-lg-10">
-    <div class="card shadow-sm border-0 rounded-3 mb-4">
-      <div class="card-body">
-        <h3 class="card-title text-center mb-4">📊 Отчёт по классу</h3>
-
-        <!-- Форма фильтров -->
-        <form method="get" class="row g-3 mb-4">
-          <div class="col-md-2">
-            <label class="form-label">Год</label>
-            <input type="number" name="year" value="{{ year }}" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Предмет</label>
-            <select name="subject" class="form-select form-select-sm">
-              <option value="0">Все</option>
-              {% for subj in subjects %}
-                <option value="{{ subj.id }}" {% if subj.id == subject_id %}selected{% endif %}>{{ subj.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Период</label>
-            <select name="period" class="form-select form-select-sm">
-              <option value="year" {% if period == 'year' %}selected{% endif %}>Год</option>
-              <option value="halfyear1" {% if period == 'halfyear1' %}selected{% endif %}>1 полугодие</option>
-              <option value="halfyear2" {% if period == 'halfyear2' %}selected{% endif %}>2 полугодие</option>
-              <option value="quarter1" {% if period == 'quarter1' %}selected{% endif %}>1 четверть</option>
-              <option value="quarter2" {% if period == 'quarter2' %}selected{% endif %}>2 четверть</option>
-              <option value="quarter3" {% if period == 'quarter3' %}selected{% endif %}>3 четверть</option>
-              <option value="quarter4" {% if period == 'quarter4' %}selected{% endif %}>4 четверть</option>
-            </select>
-          </div>
-          <div class="col-md-2 d-grid">
-            <label class="form-label">&nbsp;</label>
-            <button type="submit" class="btn btn-primary btn-sm">🔎 Показать</button>
-          </div>
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form class="row g-3" method="get" action="{{ url_for('teacher_report') }}">
+            <div class="col-md-3">
+                <label class="form-label">Год</label>
+                <input type="number" name="year" class="form-control" value="{{ year }}" min="2000" max="{{ current_year() }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Предмет</label>
+                <select name="subject" class="form-select">
+                    <option value="0" {% if subject_id == 0 %}selected{% endif %}>Все</option>
+                    {% for subj in subjects %}
+                        <option value="{{ subj.id }}" {% if subject_id == subj.id %}selected{% endif %}>{{ subj.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Период</label>
+                <select name="period" class="form-select">
+                    <option value="year" {% if period == 'year' %}selected{% endif %}>Год</option>
+                    <option value="q1" {% if period == 'q1' %}selected{% endif %}>1 полугодие</option>
+                    <option value="q2" {% if period == 'q2' %}selected{% endif %}>2 полугодие</option>
+                    <option value="1" {% if period == '1' %}selected{% endif %}>1 четверть</option>
+                    <option value="2" {% if period == '2' %}selected{% endif %}>2 четверть</option>
+                    <option value="3" {% if period == '3' %}selected{% endif %}>3 четверть</option>
+                    <option value="4" {% if period == '4' %}selected{% endif %}>4 четверть</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary mt-4"><i class="bi bi-search"></i> Показать</button>
+            </div>
         </form>
-
-        <!-- Таблица отчёта -->
-        <div class="table-responsive">
-          <table class="table table-hover table-bordered align-middle text-center">
-            <thead class="table-light">
-              <tr>
-                <th>ФИО ученика</th>
-                <th>Оценки</th>
-                <th>Средний балл</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for name, grades, avg in report_data %}
-              <tr>
-                <td class="text-start">{{ name }}</td>
-                <td>
-                  {% if grades %}
-                    {{ grades|join(", ") }}
-                  {% else %}
-                    <span class="text-muted">—</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if avg %}
-                    <span class="badge bg-success">{{ avg }}</span>
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Ссылки -->
-        <div class="d-flex justify-content-between mt-3">
-          <a href="{{ url_for('teacher_page') }}" class="btn btn-outline-secondary">← Назад</a>
-          <a href="{{ url_for('export_class', subject=subject_id, year=year, quarter=0) }}" class="btn btn-outline-success">⬇ Скачать CSV (год)</a>
-        </div>
-
-      </div>
     </div>
-  </div>
 </div>
 
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title m-0">Итоги по классу</h5>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_class', subject=subject_id, year=year, quarter=0 if period == 'year' else period) }}">
+                ⬇ Скачать CSV
+            </a>
+        </div>
+        <div class="table-responsive">
+            {% if report_data %}
+                <table class="table table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ФИО ученика</th>
+                            <th>Оценки</th>
+                            <th>Средний балл</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for name, grades, avg in report_data %}
+                            <tr>
+                                <td>{{ name }}</td>
+                                <td>{{ grades|join(", ") if grades else '—' }}</td>
+                                <td>{{ avg if avg else '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">Нет данных за выбранный период. Проверьте фильтры или добавьте оценки.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<a href="{{ url_for('teacher_page') }}" class="btn btn-secondary mt-3">← Назад</a>
 {% endblock %}

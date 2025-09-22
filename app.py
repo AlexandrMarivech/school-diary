@@ -33,9 +33,10 @@ class Grade(db.Model):
     value = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     quarter = db.Column(db.Integer, nullable=False)
+    week = db.Column(db.Integer, nullable=True)  # Добавлено для учителя
 
     __table_args__ = (
-        db.UniqueConstraint('student_id', 'subject_id', 'year', 'quarter', name='unique_grade'),
+        db.UniqueConstraint('student_id', 'subject_id', 'year', 'quarter', 'week', name='unique_grade'),
     )
 
 # =========================
@@ -86,7 +87,7 @@ def create_demo_data():
                     if val < 2 or val > 5:
                         val = 3  # Валидация
                     g = Grade(student_id=st.id, subject_id=subj.id, value=val,
-                              year=current_year(), quarter=q)
+                              year=current_year(), quarter=q, week=1)
                     db.session.add(g)
 
         db.session.commit()
@@ -162,20 +163,36 @@ def student_page():
         return redirect(url_for('login'))
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
+    quarter = int(request.args.get('quarter', 0))
+    subject_id = int(request.args.get('subject', 0))
+
+    if not os.path.exists('data.db'):
+        flash('База данных не найдена. Обратитесь к администратору', 'danger')
+        print("Error: data.db not found")
+        return redirect(url_for('dashboard'))
 
     subjects = Subject.query.all()
-    subject_map = {s.id: s.name for s in subjects}
+    if not subjects:
+        flash('Нет предметов в базе. Обратитесь к администратору', 'danger')
+        print("Error: No subjects found")
+        return redirect(url_for('dashboard'))
 
+    subject_map = {s.id: s.name for s in subjects}
     q = Grade.query.filter_by(student_id=student_id, year=year)
+    if quarter != 0:
+        q = q.filter_by(quarter=quarter)
+    if subject_id != 0:
+        q = q.filter_by(subject_id=subject_id)
     grades = q.all()
 
     avg = {}
     for g in grades:
-        subjname = subject_map.get(g.subject_id, '')
+        subjname = subject_map.get(g.subject_id, 'Неизвестный')
         avg.setdefault(subjname, []).append(g.value)
     avg = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in avg.items()}
 
-    return render_template('student.html', grades=grades, avg=avg, year=year)
+    return render_template('student.html', grades=grades, avg=avg, year=year,
+                          quarter=quarter, subject_id=subject_id, subjects=subjects, subject_map=subject_map)
 
 @app.route('/student/report')
 def student_report():
@@ -185,21 +202,129 @@ def student_report():
 
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
-    subjects = Subject.query.all()
-    subject_map = {s.id: s.name for s in subjects}
 
-    q = Grade.query.filter_by(student_id=student_id, year=year)
-    grades = q.all()
+    if not os.path.exists('data.db'):
+        flash('База данных не найдена. Обратитесь к администратору', 'danger')
+        print("Error: data.db not found")
+        return redirect(url_for('dashboard'))
+
+    subjects = Subject.query.all()
+    if not subjects:
+        flash('Нет предметов в базе. Обратитесь к администратору', 'danger')
+        print("Error: No subjects found")
+        return redirect(url_for('dashboard'))
+
+    subject_map = {s.id: s.name for s in subjects}
+    grades = Grade.query.filter_by(student_id=student_id, year=year).all()
 
     subj_avgs = {}
     for g in grades:
-        subjname = subject_map.get(g.subject_id, '')
+        subjname = subject_map.get(g.subject_id, 'Неизвестный')
         subj_avgs.setdefault(subjname, []).append(g.value)
     subj_avgs = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in subj_avgs.items()}
     overall = round(sum([g.value for g in grades])/len(grades), 2) if grades else 0
 
     return render_template('student_report.html', year=year,
                            subject_avgs=subj_avgs, overall_avg=overall)
+
+# =========================
+#           УЧИТЕЛЬ
+# =========================
+@app.route('/teacher', methods=['GET', 'POST'])
+def teacher_page():
+    if 'user_id' not in session or session.get('role') != 'teacher':
+        flash('Доступ только для учителей', 'danger')
+        return redirect(url_for('login'))
+
+    if not os.path.exists('data.db'):
+        flash('База данных не найдена. Обратитесь к администратору', 'danger')
+        print("Error: data.db not found")
+        return redirect(url_for('dashboard'))
+
+    students = User.query.filter_by(role='student').all()
+    subjects = Subject.query.all()
+    if not subjects or not students:
+        flash('Нет студентов или предметов в базе. Обратитесь к администратору', 'danger')
+        print(f"Error: students={len(students)}, subjects={len(subjects)}")
+        return redirect(url_for('dashboard'))
+
+    message = ''
+    if request.method == 'POST':
+        subject_id = int(request.form.get('subject_id', 0))
+        year = int(request.form.get('year', current_year()))
+        quarter = int(request.form.get('quarter', 0))
+        week = int(request.form.get('week', 0))
+        if quarter not in [1, 2, 3, 4] or week < 0 or week > 52 or not subject_id:
+            flash('Неверные данные: проверьте четверть, неделю и предмет', 'danger')
+            print(f"Invalid input: subject_id={subject_id}, quarter={quarter}, week={week}")
+            return redirect(url_for('teacher_page'))
+
+        for student in students:
+            grade_value = request.form.get(f'grade_{student.id}')
+            if grade_value:
+                try:
+                    value = int(grade_value)
+                    if value < 2 or value > 5:
+                        flash(f'Оценка для {student.fullname or student.username} должна быть от 2 до 5', 'danger')
+                        continue
+                    existing_grade = Grade.query.filter_by(
+                        student_id=student.id, subject_id=subject_id, year=year, quarter=quarter, week=week
+                    ).first()
+                    if existing_grade:
+                        existing_grade.value = value
+                    else:
+                        new_grade = Grade(student_id=student.id, subject_id=subject_id, value=value,
+                                        year=year, quarter=quarter, week=week)
+                        db.session.add(new_grade)
+                except ValueError:
+                    flash(f'Неверная оценка для {student.fullname or student.username}', 'danger')
+                    continue
+        db.session.commit()
+        flash('Оценки сохранены', 'success')
+        print(f"Grades saved: subject_id={subject_id}, year={year}, quarter={quarter}, week={week}")
+
+    return render_template('teacher.html', students=students, subjects=subjects, message=message)
+
+@app.route('/teacher/report')
+def teacher_report():
+    if 'user_id' not in session or session.get('role') != 'teacher':
+        flash('Доступ только для учителей', 'danger')
+        return redirect(url_for('login'))
+
+    year = int(request.args.get('year', current_year()))
+    subject_id = int(request.args.get('subject', 0))
+    period = request.args.get('period', 'year')
+
+    if not os.path.exists('data.db'):
+        flash('База данных не найдена. Обратитесь к администратору', 'danger')
+        print("Error: data.db not found")
+        return redirect(url_for('dashboard'))
+
+    students = User.query.filter_by(role='student').all()
+    subjects = Subject.query.all()
+    if not subjects or not students:
+        flash('Нет студентов или предметов в базе. Обратитесь к администратору', 'danger')
+        print(f"Error: students={len(students)}, subjects={len(subjects)}")
+        return redirect(url_for('dashboard'))
+
+    subject_map = {s.id: s.name for s in subjects}
+    report_data = []
+    for st in students:
+        q = Grade.query.filter_by(student_id=st.id, year=year)
+        if subject_id != 0:
+            q = q.filter_by(subject_id=subject_id)
+        if period == 'q1':
+            q = q.filter(Grade.quarter.in_([1, 2]))
+        elif period == 'q2':
+            q = q.filter(Grade.quarter.in_([3, 4]))
+        elif period in ['1', '2', '3', '4']:
+            q = q.filter_by(quarter=int(period))
+        grades = [g.value for g in q.all()]
+        avg = round(sum(grades)/len(grades), 2) if grades else 0
+        report_data.append((st.fullname or st.username, grades, avg))
+
+    return render_template('teacher_report.html', report_data=report_data, year=year,
+                          subjects=subjects, period=period, subject_id=subject_id)
 
 # =========================
 #           АДМИН
@@ -244,7 +369,6 @@ def admin_reports():
             year = current_year()
             flash('Год исправлен на текущий', 'info')
 
-        # Проверка БД
         if not os.path.exists('data.db'):
             flash('База данных не найдена. Запустите python app.py initdb', 'danger')
             print("Error: data.db not found")
@@ -284,7 +408,8 @@ def admin_reports():
             year=year,
             report_data=report_data,
             total_students=len(students),
-            subjects=subjects
+            subjects=subjects,
+            current_year=current_year
         )
     except ZeroDivisionError:
         print("ZeroDivisionError: No grades for selected year")
@@ -295,41 +420,44 @@ def admin_reports():
         flash(f'Ошибка отчёта: {str(e)}', 'danger')
         return redirect(url_for('admin_page'))
 
-@app.route('/admin/edit/<int:user_id>', methods=['POST'])
+@app.route('/admin/edit/<int:user_id>', methods=['GET', 'POST'])
 def edit_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         flash('Доступ только для админов', 'danger')
         return redirect(url_for('login'))
 
-    try:
-        user = User.query.get_or_404(user_id)
-        username = request.form['username'].strip()
-        fullname = request.form.get('fullname', '').strip()
-        role = request.form['role']
-        password = request.form.get('password', '').strip()
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        try:
+            username = request.form['username'].strip()
+            fullname = request.form.get('fullname', '').strip()
+            role = request.form['role']
+            password = request.form.get('password', '').strip()
 
-        if username != user.username:
-            existing = User.query.filter(User.username == username, User.id != user.id).first()
-            if existing:
-                flash('Логин уже существует', 'danger')
+            if username != user.username:
+                existing = User.query.filter(User.username == username, User.id != user.id).first()
+                if existing:
+                    flash('Логин уже существует', 'danger')
+                    return redirect(url_for('admin_page'))
+
+            if password and len(password) <= 4:
+                flash('Пароль слишком короткий (>4 символов)', 'danger')
                 return redirect(url_for('admin_page'))
 
-        if password and len(password) <= 4:
-            flash('Пароль слишком короткий (>4 символов)', 'danger')
-            return redirect(url_for('admin_page'))
+            user.username = username
+            user.fullname = fullname
+            user.role = role
+            if password:
+                user.password_hash = generate_password_hash(password)
 
-        user.username = username
-        user.fullname = fullname
-        user.role = role
-        if password:
-            user.password_hash = generate_password_hash(password)
+            db.session.commit()
+            flash('Пользователь обновлён', 'success')
+        except Exception as e:
+            print(f"Edit user error: {str(e)}")
+            flash(f'Ошибка редактирования: {str(e)}', 'danger')
+        return redirect(url_for('admin_page'))
 
-        db.session.commit()
-        flash('Пользователь обновлён', 'success')
-    except Exception as e:
-        print(f"Edit user error: {str(e)}")
-        flash(f'Ошибка редактирования: {str(e)}', 'danger')
-    return redirect(url_for('admin_page'))
+    return render_template('edit_user.html', user=user)
 
 @app.route('/admin/delete/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
