@@ -6,8 +6,8 @@ import csv, io, os, datetime
 app = Flask(__name__)
 
 # --- Конфигурация ---
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-CHANGE-ME')  # поменяй в продакшене!
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-CHANGE-ME')  # Поменяй в продакшене!
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/data.db'  # Путь к базе в папке instance
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -19,7 +19,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # 'student','teacher','admin'
+    role = db.Column(db.String(20), nullable=False)  # 'student', 'teacher', 'admin'
     fullname = db.Column(db.String(120), nullable=True)
 
 class Subject(db.Model):
@@ -105,7 +105,7 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET','POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     error = ''
     if request.method == 'POST':
@@ -166,9 +166,9 @@ def student_page():
     quarter = int(request.args.get('quarter', 0))
     subject_id = int(request.args.get('subject', 0))
 
-    if not os.path.exists('data.db'):
+    if not os.path.exists('instance/data.db'):
         flash('База данных не найдена. Обратитесь к администратору', 'danger')
-        print("Error: data.db not found")
+        print("Error: instance/data.db not found")
         return redirect(url_for('dashboard'))
 
     subjects = Subject.query.all()
@@ -204,9 +204,9 @@ def student_report():
     student_id = session['user_id']
     year = int(request.args.get('year', current_year()))
 
-    if not os.path.exists('data.db'):
+    if not os.path.exists('instance/data.db'):
         flash('База данных не найдена. Обратитесь к администратору', 'danger')
-        print("Error: data.db not found")
+        print("Error: instance/data.db not found")
         return redirect(url_for('dashboard'))
 
     subjects = Subject.query.all()
@@ -237,9 +237,9 @@ def teacher_page():
         flash('Доступ только для учителей', 'danger')
         return redirect(url_for('login'))
 
-    if not os.path.exists('data.db'):
+    if not os.path.exists('instance/data.db'):
         flash('База данных не найдена. Обратитесь к администратору', 'danger')
-        print("Error: data.db not found")
+        print("Error: instance/data.db not found")
         return redirect(url_for('dashboard'))
 
     students = User.query.filter_by(role='student').all()
@@ -296,9 +296,9 @@ def teacher_report():
     subject_id = int(request.args.get('subject', 0))
     period = request.args.get('period', 'year')
 
-    if not os.path.exists('data.db'):
+    if not os.path.exists('instance/data.db'):
         flash('База данных не найдена. Обратитесь к администратору', 'danger')
-        print("Error: data.db not found")
+        print("Error: instance/data.db not found")
         return redirect(url_for('dashboard'))
 
     students = User.query.filter_by(role='student').all()
@@ -330,7 +330,7 @@ def teacher_report():
 # =========================
 #           АДМИН
 # =========================
-@app.route('/admin', methods=['GET','POST'])
+@app.route('/admin', methods=['GET', 'POST'])
 def admin_page():
     if 'user_id' not in session or session.get('role') != 'admin':
         flash('Доступ только для админов', 'danger')
@@ -338,10 +338,10 @@ def admin_page():
     message = ''
     if request.method == 'POST':
         username = request.form['username'].strip()
-        fullname = request.form.get('fullname','').strip()
+        fullname = request.form.get('fullname', '').strip()
         password = request.form['password'].strip()
         role = request.form['role']
-        if username and password and len(password) > 4 and role in ['student','teacher','admin']:
+        if username and password and len(password) > 4 and role in ['student', 'teacher', 'admin']:
             if User.query.filter_by(username=username).first():
                 message = 'Пользователь с таким логином уже существует'
                 flash(message, 'danger')
@@ -370,9 +370,9 @@ def admin_reports():
             year = current_year()
             flash('Год исправлен на текущий', 'info')
 
-        if not os.path.exists('data.db'):
+        if not os.path.exists('instance/data.db'):
             flash('База данных не найдена. Запустите python app.py initdb', 'danger')
-            print("Error: data.db not found")
+            print("Error: instance/data.db not found")
             return redirect(url_for('admin_page'))
 
         students = User.query.filter_by(role='student').all()
@@ -491,7 +491,7 @@ def test_dashboard():
 
 @app.route('/export/class')
 def export_class():
-    if 'user_id' not in session or session.get('role') not in ['teacher','admin']:
+    if 'user_id' not in session or session.get('role') not in ['teacher', 'admin']:
         flash('Доступ только для учителей/админов', 'danger')
         return redirect(url_for('login'))
     try:
@@ -503,7 +503,7 @@ def export_class():
 
         si = io.StringIO()
         cw = csv.writer(si)
-        cw.writerow(['ФИО ученика','Предмет','Оценки','Средний балл'])
+        cw.writerow(['ФИО ученика', 'Предмет', 'Оценки', 'Средний балл'])
         for st in students:
             q = Grade.query.filter_by(student_id=st.id, year=year)
             if quarter != 0:
@@ -511,9 +511,9 @@ def export_class():
             if subject_id != 0:
                 q = q.filter_by(subject_id=subject_id)
             grades = [g.value for g in q.all()]
-            avg = round(sum(grades)/len(grades),2) if len(grades) > 0 else ''
+            avg = round(sum(grades)/len(grades), 2) if len(grades) > 0 else ''
             subjname = subject.name if subject else 'Все'
-            cw.writerow([st.fullname or st.username, subjname, ";".join(map(str,grades)), avg])
+            cw.writerow([st.fullname or st.username, subjname, ";".join(map(str, grades)), avg])
 
         output = make_response(si.getvalue())
         output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
