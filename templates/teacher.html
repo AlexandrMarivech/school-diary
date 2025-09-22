@@ -6,6 +6,9 @@
 <div class="card shadow-sm mb-3">
     <div class="card-body">
         <h5 class="card-title">📋 Ввод оценок</h5>
+        {% if message %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endif %}
         <form method="post" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Предмет</label>
@@ -17,7 +20,7 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Год</label>
-                <input type="number" name="year" class="form-control" value="{{ current_year() }}" min="2000" max="{{ current_year() }}" required>
+                <input type="number" name="year" class="form-control" value="{{ current_year }}" min="2000" max="{{ current_year }}" required>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Четверть</label>
@@ -75,7 +78,7 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Год</label>
-                <input type="number" name="year" class="form-control" value="{{ current_year() }}" min="2000" max="{{ current_year() }}">
+                <input type="number" name="year" class="form-control" value="{{ current_year }}" min="2000" max="{{ current_year }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Период</label>
@@ -91,7 +94,7 @@
             </div>
             <div class="col-md-5">
                 <button class="btn btn-primary mt-4"><i class="bi bi-search"></i> Показать</button>
-                <a class="btn btn-outline-secondary mt-4" href="{{ url_for('export_class', subject=request.args.get('subject', 0), year=request.args.get('year', current_year()), quarter=request.args.get('quarter', 0)) }}">
+                <a class="btn btn-outline-secondary mt-4" href="{{ url_for('export_class', subject=request.args.get('subject', 0), year=request.args.get('year', current_year), quarter=request.args.get('quarter', 0)) }}">
                     ⬇️ Скачать CSV
                 </a>
             </div>

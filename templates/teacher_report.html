@@ -8,7 +8,7 @@
         <form class="row g-3" method="get" action="{{ url_for('teacher_report') }}">
             <div class="col-md-3">
                 <label class="form-label">Год</label>
-                <input type="number" name="year" class="form-control" value="{{ year }}" min="2000" max="{{ current_year() }}">
+                <input type="number" name="year" class="form-control" value="{{ year }}" min="2000" max="{{ current_year }}">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Предмет</label>
