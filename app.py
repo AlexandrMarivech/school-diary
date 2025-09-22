@@ -36,7 +36,7 @@ class Grade(db.Model):
     value = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     quarter = db.Column(db.Integer, nullable=False)
-    week = db.Column(db.Integer, nullable=True)  # <— НОВОЕ ПОЛЕ (1..10), можно оставить пустым
+    week = db.Column(db.Integer, nullable=True)  # <— новое поле (1..10)
 
 
 # ───────── Helpers ─────────
@@ -81,7 +81,7 @@ def create_demo_data():
                 if not (2 <= val <= 5):
                     val = 3
                 g = Grade(student_id=st.id, subject_id=subj.id, value=val,
-                          year=current_year(), quarter=q)
+                          year=current_year(), quarter=q, week=1)
                 db.session.add(g)
     db.session.commit()
     print("Demo data created. Users: admin/admin123, teacher/teach123, student*/stud123")
@@ -125,7 +125,6 @@ def dashboard():
         return redirect(url_for("login"))
 
     role = session.get("role")
-    # Админа на список пользователей — там есть кнопка в отчёты
     if role == "admin":
         return redirect(url_for("admin_page"))
 
@@ -158,7 +157,9 @@ def student_page():
         avg.setdefault(subjname, []).append(g.value)
     avg = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in avg.items()}
 
-    return render_template("student.html", grades=grades, avg=avg, year=year)
+    return render_template("student.html",
+                           grades=grades, avg=avg,
+                           year=year, subject_map=subject_map)
 
 @app.route("/student/report")
 def student_report():
@@ -181,8 +182,9 @@ def student_report():
     subj_avgs = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in subj_avgs.items()}
     overall = round(sum([g.value for g in grades])/len(grades), 2) if grades else 0
 
-    return render_template("student_report.html", year=year,
-                           subject_avgs=subj_avgs, overall_avg=overall)
+    return render_template("student_report.html",
+                           year=year, subject_avgs=subj_avgs,
+                           overall_avg=overall, subject_map=subject_map)
 
 # ───────── Teacher ─────────
 @app.route("/teacher", methods=["GET", "POST"])
@@ -195,39 +197,37 @@ def teacher_page():
     students = User.query.filter_by(role="student").all()
     message = ""
 
-if request.method == "POST":
-    subject_id = int(request.form["subject"])
-    year = int(request.form["year"])
-    quarter = int(request.form["quarter"])
-    week = int(request.form.get("week", 1))  # <── новое поле
+    if request.method == "POST":
+        subject_id = int(request.form["subject"])
+        year = int(request.form["year"])
+        quarter = int(request.form["quarter"])
+        week = int(request.form.get("week", 1))
 
-    for st in students:
-        key = f"student_{st.id}"
-        raw = request.form.get(key, "").strip()
-        if not raw:
-            continue
-        try:
-            value = int(raw)
-        except ValueError:
-            continue
-        if value < 2 or value > 5:
-            continue
+        for st in students:
+            key = f"student_{st.id}"
+            raw = request.form.get(key, "").strip()
+            if not raw:
+                continue
+            try:
+                value = int(raw)
+            except ValueError:
+                continue
+            if value < 2 or value > 5:
+                continue
 
-        existing = Grade.query.filter_by(
-            student_id=st.id, subject_id=subject_id,
-            year=year, quarter=quarter, week=week   # <── ищем по неделе
-        ).first()
-        if existing:
-            existing.value = value
-        else:
-            db.session.add(Grade(
-                student_id=st.id, subject_id=subject_id, value=value,
-                year=year, quarter=quarter, week=week   # <── сохраняем неделю
-            ))
-    db.session.commit()
-    message = "Оценки сохранены."
-
-
+            existing = Grade.query.filter_by(
+                student_id=st.id, subject_id=subject_id,
+                year=year, quarter=quarter, week=week
+            ).first()
+            if existing:
+                existing.value = value
+            else:
+                db.session.add(Grade(
+                    student_id=st.id, subject_id=subject_id, value=value,
+                    year=year, quarter=quarter, week=week
+                ))
+        db.session.commit()
+        message = "Оценки сохранены."
 
     return render_template("teacher.html",
                            subjects=subjects, students=students,
@@ -241,7 +241,7 @@ def teacher_report():
 
     subject_id = int(request.args.get("subject", 0))
     year = int(request.args.get("year", current_year()))
-    period = request.args.get("period", "year")  # quarter1..4, halfyear1/2, year
+    period = request.args.get("period", "year")
 
     subjects = Subject.query.all()
     students = User.query.filter_by(role="student").all()
@@ -369,7 +369,8 @@ def admin_reports():
                            year=year,
                            report_data=report_data,
                            total_students=len(students),
-                           subjects=subjects)
+                           subjects=subjects,
+                           current_year=current_year)
 
 @app.route("/admin/edit/<int:user_id>", methods=["POST"])
 def edit_user(user_id):
