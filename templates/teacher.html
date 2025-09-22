@@ -11,22 +11,28 @@
         {% endif %}
 
         <form method="post">
-          <div class="row g-3 mb-3">
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Предмет</label>
-              <select name="subject" class="form-select form-select-sm">
-                {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Год</label>
-              <input name="year" value="{{ current_year }}" class="form-control form-control-sm">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Четверть</label>
-              <input name="quarter" value="1" class="form-control form-control-sm">
-            </div>
-          </div>
+ <div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Предмет</label>
+    <select name="subject" class="form-select form-select-sm">
+      {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Год</label>
+    <input name="year" value="{{ current_year }}" class="form-control form-control-sm">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Четверть</label>
+    <input name="quarter" value="1" class="form-control form-control-sm">
+  </div>
+  <div class="col-md-4">   <!-- <── добавляем сюда -->
+    <label class="form-label fw-semibold">Неделя</label>
+    <input name="week" value="1" class="form-control form-control-sm">
+    <div class="form-text">Например: 1..10</div>
+  </div>
+</div>
+
 
           <h5 class="mt-4">📋 Список учеников</h5>
           <div class="table-responsive">
@@ -74,11 +80,6 @@
             <div class="col-md-4">
               <label class="form-label fw-semibold">Год</label>
               <input name="year" value="{{ current_year }}" class="form-control form-control-sm">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Четверть</label>
-              <input name="quarter" value="0" class="form-control form-control-sm">
-              <div class="form-text">0 = все четверти</div>
             </div>
           </div>
           <button class="btn btn-outline-secondary">⬇️ Скачать CSV</button>

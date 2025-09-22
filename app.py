@@ -31,14 +31,13 @@ class Subject(db.Model):
 
 class Grade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
     value = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     quarter = db.Column(db.Integer, nullable=False)
-    __table_args__ = (
-        db.UniqueConstraint("student_id", "subject_id", "year", "quarter", name="uq_grade"),
-    )
+    week = db.Column(db.Integer, nullable=True)  # <— НОВОЕ ПОЛЕ (1..10), можно оставить пустым
+
 
 # ───────── Helpers ─────────
 def current_year():
@@ -196,35 +195,39 @@ def teacher_page():
     students = User.query.filter_by(role="student").all()
     message = ""
 
-    if request.method == "POST":
-        subject_id = int(request.form["subject"])
-        year = int(request.form["year"])
-        quarter = int(request.form["quarter"])
+if request.method == "POST":
+    subject_id = int(request.form["subject"])
+    year = int(request.form["year"])
+    quarter = int(request.form["quarter"])
+    week = int(request.form.get("week", 1))  # <── новое поле
 
-        for st in students:
-            key = f"student_{st.id}"
-            raw = request.form.get(key, "").strip()
-            if not raw:
-                continue
-            try:
-                value = int(raw)
-            except ValueError:
-                continue
-            if value < 2 or value > 5:
-                continue
+    for st in students:
+        key = f"student_{st.id}"
+        raw = request.form.get(key, "").strip()
+        if not raw:
+            continue
+        try:
+            value = int(raw)
+        except ValueError:
+            continue
+        if value < 2 or value > 5:
+            continue
 
-            existing = Grade.query.filter_by(
-                student_id=st.id, subject_id=subject_id, year=year, quarter=quarter
-            ).first()
-            if existing:
-                existing.value = value
-            else:
-                db.session.add(Grade(
-                    student_id=st.id, subject_id=subject_id, value=value,
-                    year=year, quarter=quarter
-                ))
-        db.session.commit()
-        message = "Оценки сохранены."
+        existing = Grade.query.filter_by(
+            student_id=st.id, subject_id=subject_id,
+            year=year, quarter=quarter, week=week   # <── ищем по неделе
+        ).first()
+        if existing:
+            existing.value = value
+        else:
+            db.session.add(Grade(
+                student_id=st.id, subject_id=subject_id, value=value,
+                year=year, quarter=quarter, week=week   # <── сохраняем неделю
+            ))
+    db.session.commit()
+    message = "Оценки сохранены."
+
+
 
     return render_template("teacher.html",
                            subjects=subjects, students=students,
