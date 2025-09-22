@@ -59,14 +59,14 @@ def create_demo_data():
 
         # пользователи
         admin = User(username='admin', password_hash=generate_password_hash('admin123'),
-                     role='admin', fullname='Администратор Школы')
+                    role='admin', fullname='Администратор Школы')
         teacher = User(username='teacher', password_hash=generate_password_hash('teach123'),
-                       role='teacher', fullname='Иван Иванов (Учитель)')
+                      role='teacher', fullname='Иван Иванов (Учитель)')
         students = [
             User(username='student', password_hash=generate_password_hash('stud123'),
-                 role='student', fullname='Пётр Петров (Отличник)'),
+                role='student', fullname='Пётр Петров (Отличник)'),
             User(username='student2', password_hash=generate_password_hash('stud123'),
-                 role='student', fullname='Анна Смирнова (Хорошистка)'),
+                role='student', fullname='Анна Смирнова (Хорошистка)'),
         ]
 
         db.session.add_all([admin, teacher] + students)
@@ -87,7 +87,7 @@ def create_demo_data():
                     if val < 2 or val > 5:
                         val = 3  # Валидация
                     g = Grade(student_id=st.id, subject_id=subj.id, value=val,
-                              year=current_year(), quarter=q, week=1)
+                            year=current_year(), quarter=q, week=1)
                     db.session.add(g)
 
         db.session.commit()
@@ -226,7 +226,7 @@ def student_report():
     overall = round(sum([g.value for g in grades])/len(grades), 2) if grades else 0
 
     return render_template('student_report.html', year=year,
-                           subject_avgs=subj_avgs, overall_avg=overall, current_year=current_year())
+                          subject_avgs=subj_avgs, overall_avg=overall, current_year=current_year())
 
 # =========================
 #           УЧИТЕЛЬ
