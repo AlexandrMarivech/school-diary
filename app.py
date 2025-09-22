@@ -6,9 +6,10 @@ import csv, io, os, datetime
 app = Flask(__name__)
 
 # --- Конфигурация ---
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-CHANGE-ME')  # Поменяй в продакшене!
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/data.db'  # Путь к базе в папке instance
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-CHANGE-ME")
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(INSTANCE_DIR, "data.db")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 
 db = SQLAlchemy(app)
 
