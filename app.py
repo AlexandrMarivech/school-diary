@@ -42,7 +42,7 @@ class Grade(db.Model):
 # =========================
 #     ВСПОМОГАТЕЛЬНЫЕ
 # =========================
-def current_year:
+def current_year():
     return datetime.date.today().year
 
 def create_demo_data():
@@ -87,7 +87,7 @@ def create_demo_data():
                     if val < 2 or val > 5:
                         val = 3  # Валидация
                     g = Grade(student_id=st.id, subject_id=subj.id, value=val,
-                              year=current_year, quarter=q, week=1)
+                              year=current_year(), quarter=q, week=1)
                     db.session.add(g)
 
         db.session.commit()
@@ -124,7 +124,7 @@ def login():
             error = 'Неправильный логин или пароль'
             print(f"Login failed: username={username}")
             flash(error, 'danger')
-    return render_template('login.html', error=error, current_year=current_year)
+    return render_template('login.html', error=error, current_year=current_year())
 
 @app.route('/logout')
 def logout():
@@ -151,7 +151,7 @@ def dashboard():
         {"title": "Запущена олимпиада", "desc": "Математика и русский язык.", "url": "https://edu.gov.ru/", "image": "https://picsum.photos/400/200?random=1"},
         {"title": "Обновления сайта", "desc": "Добавлены отчёты.", "url": "https://github.com/AlexandrMarivech/school-diary", "image": "https://picsum.photos/400/200?random=2"},
     ]
-    return render_template("dashboard.html", role=role, news=news, current_year=current_year)
+    return render_template("dashboard.html", role=role, news=news, current_year=current_year())
 
 # =========================
 #          УЧЕНИК
@@ -162,7 +162,7 @@ def student_page():
         flash('Доступ только для студентов', 'danger')
         return redirect(url_for('login'))
     student_id = session['user_id']
-    year = int(request.args.get('year', current_year))
+    year = int(request.args.get('year', current_year()))
     quarter = int(request.args.get('quarter', 0))
     subject_id = int(request.args.get('subject', 0))
 
@@ -193,7 +193,7 @@ def student_page():
 
     return render_template('student.html', grades=grades, avg=avg, year=year,
                           quarter=quarter, subject_id=subject_id, subjects=subjects,
-                          subject_map=subject_map, current_year=current_year)
+                          subject_map=subject_map, current_year=current_year())
 
 @app.route('/student/report')
 def student_report():
@@ -202,7 +202,7 @@ def student_report():
         return redirect(url_for('login'))
 
     student_id = session['user_id']
-    year = int(request.args.get('year', current_year))
+    year = int(request.args.get('year', current_year()))
 
     if not os.path.exists('data.db'):
         flash('База данных не найдена. Обратитесь к администратору', 'danger')
@@ -226,7 +226,7 @@ def student_report():
     overall = round(sum([g.value for g in grades])/len(grades), 2) if grades else 0
 
     return render_template('student_report.html', year=year,
-                           subject_avgs=subj_avgs, overall_avg=overall, current_year=current_year)
+                           subject_avgs=subj_avgs, overall_avg=overall, current_year=current_year())
 
 # =========================
 #           УЧИТЕЛЬ
@@ -252,7 +252,7 @@ def teacher_page():
     message = ''
     if request.method == 'POST':
         subject_id = int(request.form.get('subject_id', 0))
-        year = int(request.form.get('year', current_year))
+        year = int(request.form.get('year', current_year()))
         quarter = int(request.form.get('quarter', 0))
         week = int(request.form.get('week', 0))
         if quarter not in [1, 2, 3, 4] or week < 0 or week > 52 or not subject_id:
@@ -284,7 +284,7 @@ def teacher_page():
         flash('Оценки сохранены', 'success')
         print(f"Grades saved: subject_id={subject_id}, year={year}, quarter={quarter}, week={week}")
 
-    return render_template('teacher.html', students=students, subjects=subjects, message=message, current_year=current_year)
+    return render_template('teacher.html', students=students, subjects=subjects, message=message, current_year=current_year())
 
 @app.route('/teacher/report')
 def teacher_report():
@@ -292,7 +292,7 @@ def teacher_report():
         flash('Доступ только для учителей', 'danger')
         return redirect(url_for('login'))
 
-    year = int(request.args.get('year', current_year))
+    year = int(request.args.get('year', current_year()))
     subject_id = int(request.args.get('subject', 0))
     period = request.args.get('period', 'year')
 
@@ -325,7 +325,7 @@ def teacher_report():
         report_data.append((st.fullname or st.username, grades, avg))
 
     return render_template('teacher_report.html', report_data=report_data, year=year,
-                          subjects=subjects, period=period, subject_id=subject_id, current_year=current_year)
+                          subjects=subjects, period=period, subject_id=subject_id, current_year=current_year())
 
 # =========================
 #           АДМИН
@@ -356,7 +356,7 @@ def admin_page():
             flash(message, 'danger')
     users = User.query.all()
     print(f"Admin page accessed: users found={len(users)}")
-    return render_template('admin.html', users=users, message=message, current_year=current_year)
+    return render_template('admin.html', users=users, message=message, current_year=current_year())
 
 @app.route('/admin/reports')
 def admin_reports():
@@ -365,9 +365,9 @@ def admin_reports():
         return redirect(url_for('login'))
 
     try:
-        year = int(request.args.get('year', current_year))
-        if year < 2000 or year > current_year + 1:
-            year = current_year
+        year = int(request.args.get('year', current_year()))
+        if year < 2000 or year > current_year() + 1:
+            year = current_year()
             flash('Год исправлен на текущий', 'info')
 
         if not os.path.exists('data.db'):
@@ -410,7 +410,7 @@ def admin_reports():
             report_data=report_data,
             total_students=len(students),
             subjects=subjects,
-            current_year=current_year
+            current_year=current_year()
         )
     except ZeroDivisionError:
         print("ZeroDivisionError: No grades for selected year")
@@ -458,7 +458,7 @@ def edit_user(user_id):
             flash(f'Ошибка редактирования: {str(e)}', 'danger')
         return redirect(url_for('admin_page'))
 
-    return render_template('edit_user.html', user=user, current_year=current_year)
+    return render_template('edit_user.html', user=user, current_year=current_year())
 
 @app.route('/admin/delete/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
@@ -487,7 +487,7 @@ def test_dashboard():
         return redirect(url_for('login'))
     message = f'Тестовый дашборд работает! Роль: {session.get("role")}, Пользователь: {session.get("username")}'
     print("Test dashboard accessed")
-    return render_template('test_dashboard.html', message=message, current_year=current_year)
+    return render_template('test_dashboard.html', message=message, current_year=current_year())
 
 @app.route('/export/class')
 def export_class():
@@ -496,7 +496,7 @@ def export_class():
         return redirect(url_for('login'))
     try:
         subject_id = int(request.args.get('subject', 0))
-        year = int(request.args.get('year', current_year))
+        year = int(request.args.get('year', current_year()))
         quarter = int(request.args.get('quarter', 0))
         subject = Subject.query.get(subject_id) if subject_id else None
         students = User.query.filter_by(role='student').all()
