@@ -1,8 +1,11 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash
+from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import csv, io, os, datetime
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
 
 # ───────── Flask & DB config ─────────
 app = Flask(__name__)
@@ -36,12 +39,16 @@ class Grade(db.Model):
     value = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     quarter = db.Column(db.Integer, nullable=False)
-    week = db.Column(db.Integer, nullable=True)  # <— новое поле (1..10)
-
+    week = db.Column(db.Integer, nullable=True)  # 1..10 (необязательное)
 
 # ───────── Helpers ─────────
 def current_year():
     return datetime.date.today().year
+
+@app.context_processor
+def inject_globals():
+    # Чтобы в шаблонах работало {{ current_year() }}
+    return dict(current_year=current_year)
 
 def create_demo_data():
     db.drop_all()
@@ -68,7 +75,7 @@ def create_demo_data():
     db.session.add_all([admin, teacher] + students)
     db.session.commit()
 
-    # Seed grades
+    # Seed grades (по четвертям, без недель)
     patterns = {
         "Отличник": [5, 5, 5, 5],
         "Хорошистка": [4, 5, 4, 5],
@@ -81,7 +88,7 @@ def create_demo_data():
                 if not (2 <= val <= 5):
                     val = 3
                 g = Grade(student_id=st.id, subject_id=subj.id, value=val,
-                          year=current_year(), quarter=q, week=1)
+                          year=current_year(), quarter=q)
                 db.session.add(g)
     db.session.commit()
     print("Demo data created. Users: admin/admin123, teacher/teach123, student*/stud123")
@@ -125,6 +132,7 @@ def dashboard():
         return redirect(url_for("login"))
 
     role = session.get("role")
+    # Админа на список пользователей — там есть кнопка в отчёты
     if role == "admin":
         return redirect(url_for("admin_page"))
 
@@ -157,9 +165,7 @@ def student_page():
         avg.setdefault(subjname, []).append(g.value)
     avg = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in avg.items()}
 
-    return render_template("student.html",
-                           grades=grades, avg=avg,
-                           year=year, subject_map=subject_map)
+    return render_template("student.html", grades=grades, avg=avg, year=year, subject_map=subject_map)
 
 @app.route("/student/report")
 def student_report():
@@ -182,9 +188,8 @@ def student_report():
     subj_avgs = {k: round(sum(v)/len(v), 2) if v else 0 for k, v in subj_avgs.items()}
     overall = round(sum([g.value for g in grades])/len(grades), 2) if grades else 0
 
-    return render_template("student_report.html",
-                           year=year, subject_avgs=subj_avgs,
-                           overall_avg=overall, subject_map=subject_map)
+    return render_template("student_report.html", year=year,
+                           subject_avgs=subj_avgs, overall_avg=overall, subjects=subjects)
 
 # ───────── Teacher ─────────
 @app.route("/teacher", methods=["GET", "POST"])
@@ -241,7 +246,7 @@ def teacher_report():
 
     subject_id = int(request.args.get("subject", 0))
     year = int(request.args.get("year", current_year()))
-    period = request.args.get("period", "year")
+    period = request.args.get("period", "year")  # quarter1..4, halfyear1/2, year
 
     subjects = Subject.query.all()
     students = User.query.filter_by(role="student").all()
@@ -269,8 +274,21 @@ def teacher_report():
                            subjects=subjects, subject_id=subject_id,
                            year=year, period=period, report_data=report_data)
 
-@app.route("/export/class")
-def export_class():
+# ───────── Excel exports ─────────
+def autosize_columns(ws):
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                max_len = max(max_len, len(str(cell.value)) if cell.value else 0)
+            except Exception:
+                pass
+        ws.column_dimensions[col_letter].width = max(12, min(40, max_len + 2))
+
+@app.route("/export/teacher_xlsx")
+def export_teacher_xlsx():
+    # Учитель/Админ: выгрузка по классу (с фильтрами предмет/год/четверть/неделя)
     if "user_id" not in session or session.get("role") not in ["teacher", "admin"]:
         flash("Доступ только для учителей/админов", "danger")
         return redirect(url_for("login"))
@@ -278,27 +296,157 @@ def export_class():
     subject_id = int(request.args.get("subject", 0))
     year = int(request.args.get("year", current_year()))
     quarter = int(request.args.get("quarter", 0))
+    week = int(request.args.get("week", 0))
     subject = Subject.query.get(subject_id) if subject_id != 0 else None
     students = User.query.filter_by(role="student").all()
 
-    si = io.StringIO()
-    cw = csv.writer(si)
-    cw.writerow(["ФИО ученика", "Предмет", "Оценки", "Средний балл"])
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Отчет класса"
+
+    ws.append(["ФИО ученика", "Предмет", "Период", "Неделя", "Оценки", "Средний балл"])
+
     for st in students:
         q = Grade.query.filter_by(student_id=st.id, year=year)
         if quarter != 0:
             q = q.filter_by(quarter=quarter)
         if subject_id != 0:
             q = q.filter_by(subject_id=subject_id)
-        grades = [g.value for g in q.all()]
+        if week != 0:
+            q = q.filter_by(week=week)
+        rows = q.all()
+        grades = [g.value for g in rows]
         avg = round(sum(grades)/len(grades), 2) if grades else ""
         subjname = subject.name if subject else "Все"
-        cw.writerow([st.fullname or st.username, subjname, ";".join(map(str, grades)), avg])
+        period_str = f"{year}, Q{quarter if quarter else '1-4'}"
+        week_str = week if week else "все"
+        ws.append([st.fullname or st.username, subjname, period_str, week_str, ";".join(map(str, grades)), avg])
 
-    output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = f"attachment; filename=class_report_{year}_q{quarter}.csv"
-    output.headers["Content-type"] = "text/csv; charset=utf-8"
-    return output
+    autosize_columns(ws)
+
+    # Диаграмма по средним (колонка F)
+    data_start = 2
+    data_end = ws.max_row
+    if data_end >= data_start:
+        chart = BarChart()
+        chart.title = "Средний балл по ученикам"
+        values = Reference(ws, min_col=6, min_row=1, max_row=data_end)  # F1..F*
+        cats = Reference(ws, min_col=1, min_row=2, max_row=data_end)    # A2..A*
+        chart.add_data(values, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.y_axis.title = "Средний балл"
+        chart.x_axis.title = "Ученик"
+        ws.add_chart(chart, "H2")
+
+    filepath = os.path.join(INSTANCE_DIR, f"teacher_report_{year}_q{quarter}_w{week}.xlsx")
+    wb.save(filepath)
+    return send_file(filepath, as_attachment=True)
+
+@app.route("/export/admin_xlsx")
+def export_admin_xlsx():
+    # Админ: сводная по ученикам/предметам (средние за год)
+    if "user_id" not in session or session.get("role") != "admin":
+        flash("Доступ только для админов", "danger")
+        return redirect(url_for("login"))
+
+    year = int(request.args.get("year", current_year()))
+    students = User.query.filter_by(role="student").all()
+    subjects = Subject.query.all()
+    subject_map = {s.id: s.name for s in subjects}
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Итоги {year}"
+
+    # Заголовки
+    headers = ["Ученик"] + [s.name for s in subjects] + ["Общий средний"]
+    ws.append(headers)
+
+    # Данные
+    for st in students:
+        q = Grade.query.filter_by(student_id=st.id, year=year).all()
+        subj_avgs = {}
+        for g in q:
+            name = subject_map.get(g.subject_id, "Неизв.")
+            subj_avgs.setdefault(name, []).append(g.value)
+        row = [st.fullname or st.username]
+        vals_for_mean = []
+        for s in subjects:
+            vals = subj_avgs.get(s.name, [])
+            avg = round(sum(vals)/len(vals), 2) if vals else ""
+            row.append(avg)
+            if isinstance(avg, (int, float)):
+                vals_for_mean.append(avg)
+        overall = round(sum(vals_for_mean)/len(vals_for_mean), 2) if vals_for_mean else ""
+        row.append(overall)
+        ws.append(row)
+
+    autosize_columns(ws)
+
+    # Диаграмма по общему среднему (последняя колонка)
+    last_col = ws.max_column
+    data_end = ws.max_row
+    if data_end >= 2:
+        chart = BarChart()
+        chart.title = "Общий средний балл (по ученикам)"
+        values = Reference(ws, min_col=last_col, min_row=1, max_row=data_end)
+        cats = Reference(ws, min_col=1, min_row=2, max_row=data_end)
+        chart.add_data(values, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.y_axis.title = "Средний балл"
+        chart.x_axis.title = "Ученик"
+        ws.add_chart(chart, f"{get_column_letter(last_col+2)}2")
+
+    filepath = os.path.join(INSTANCE_DIR, f"admin_report_{year}.xlsx")
+    wb.save(filepath)
+    return send_file(filepath, as_attachment=True)
+
+@app.route("/export/student_xlsx")
+def export_student_xlsx():
+    # Студент: личный отчёт с диаграммой по предметам
+    if "user_id" not in session or session.get("role") != "student":
+        flash("Доступ только для студентов", "danger")
+        return redirect(url_for("login"))
+
+    student_id = session["user_id"]
+    year = int(request.args.get("year", current_year()))
+    subjects = Subject.query.all()
+    subject_map = {s.id: s.name for s in subjects}
+
+    q = Grade.query.filter_by(student_id=student_id, year=year).all()
+    subj_avgs = {}
+    for g in q:
+        name = subject_map.get(g.subject_id, "Неизв.")
+        subj_avgs.setdefault(name, []).append(g.value)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Отчёт {year}"
+
+    ws.append(["Предмет", "Средний балл"])
+    for s in subjects:
+        vals = subj_avgs.get(s.name, [])
+        avg = round(sum(vals)/len(vals), 2) if vals else 0
+        ws.append([s.name, avg])
+
+    autosize_columns(ws)
+
+    # Диаграмма по предметам
+    data_end = ws.max_row
+    if data_end >= 2:
+        chart = BarChart()
+        chart.title = "Средний балл по предметам"
+        values = Reference(ws, min_col=2, min_row=1, max_row=data_end)
+        cats = Reference(ws, min_col=1, min_row=2, max_row=data_end)
+        chart.add_data(values, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.y_axis.title = "Средний балл"
+        chart.x_axis.title = "Предмет"
+        ws.add_chart(chart, "E2")
+
+    filepath = os.path.join(INSTANCE_DIR, f"student_report_{year}.xlsx")
+    wb.save(filepath)
+    return send_file(filepath, as_attachment=True)
 
 # ───────── Admin ─────────
 @app.route("/admin", methods=["GET", "POST"])
@@ -369,8 +517,7 @@ def admin_reports():
                            year=year,
                            report_data=report_data,
                            total_students=len(students),
-                           subjects=subjects,
-                           current_year=current_year)
+                           subjects=subjects)
 
 @app.route("/admin/edit/<int:user_id>", methods=["POST"])
 def edit_user(user_id):
