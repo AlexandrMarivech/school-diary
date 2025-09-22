@@ -1,24 +1,24 @@
 {% extends "base.html" %}
-{% block page_title %}Вход{% endblock %}
-{% block page_subtitle %}Авторизация в системе{% endblock %}
+{% block page_title %}🔑 Вход{% endblock %}
+{% block page_subtitle %}Авторизация в школьном дневнике{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm" style="max-width: 400px; margin: auto;">
+<div class="card shadow-sm">
     <div class="card-body">
-        <h5 class="card-title">Вход</h5>
+        <h5 class="card-title">Вход в систему</h5>
         <form method="post">
             <div class="mb-3">
-                <label class="form-label">Логин</label>
-                <input type="text" name="username" class="form-control" required>
+                <label for="username" class="form-label">Логин</label>
+                <input type="text" class="form-control" id="username" name="username" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Пароль</label>
-                <input type="password" name="password" class="form-control" required>
+                <label for="password" class="form-label">Пароль</label>
+                <input type="password" class="form-control" id="password" name="password" required>
             </div>
             {% if error %}
                 <div class="alert alert-danger">{{ error }}</div>
             {% endif %}
-            <button type="submit" class="btn btn-primary">Войти</button>
+            <button type="submit" class="btn btn-primary">🔑 Войти</button>
         </form>
     </div>
 </div>
