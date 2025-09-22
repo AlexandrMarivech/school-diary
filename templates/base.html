@@ -51,12 +51,11 @@
                 {% for category, message in messages %}
                     <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }}">
                         {{ message }}
-                        {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-       
+        <h1>{% block page_title_content %}{% endblock %}</h1>
         <h4 class="text-muted mb-4">{% block page_subtitle %}{% endblock %}</h4>
         {% block content %}
         {% endblock %}
