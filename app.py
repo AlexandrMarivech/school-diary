@@ -669,6 +669,19 @@ def admin_dashboard():
     return render_template("admin_dashboard.html")
 
 
+from datetime import datetime
+
+# Регистрация фильтров и глобальных функций для Jinja2
+@app.template_filter('datetime_format')
+def datetime_format(value, format="%d.%m.%Y %H:%M"):
+    return value.strftime(format)
+
+@app.context_processor
+def utility_processor():
+    def current_year():
+        return datetime.now().year
+    return dict(current_year=current_year)
+
 # ───────── CLI ─────────
 if __name__ == "__main__":
     import sys
