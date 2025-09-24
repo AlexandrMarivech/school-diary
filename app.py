@@ -676,11 +676,24 @@ from datetime import datetime
 def datetime_format(value, format="%d.%m.%Y %H:%M"):
     return value.strftime(format)
 
+# Глобальные переменные в шаблонах
 @app.context_processor
 def utility_processor():
     def current_year():
         return datetime.now().year
-    return dict(current_year=current_year)
+    # здесь возвращаем только current_year и datetime
+    return dict(current_year=current_year, datetime=datetime)
+
+
+# Фильтр для форматирования даты/времени
+@app.template_filter('datetime_format')
+def datetime_format(value, format="%d.%m.%Y %H:%M"):
+    try:
+        return value.strftime(format)
+    except Exception:
+        return value
+
+
 
 # ───────── CLI ─────────
 if __name__ == "__main__":
