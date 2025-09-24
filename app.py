@@ -55,44 +55,66 @@ def create_demo_data():
     db.drop_all()
     db.create_all()
 
-    # Subjects
+    # Предметы
     s1 = Subject(name="Русский")
     s2 = Subject(name="Математика")
     s3 = Subject(name="Физика")
     db.session.add_all([s1, s2, s3])
     db.session.commit()
 
-    # Users
+    # Пользователи
     admin = User(username="admin", password_hash=generate_password_hash("admin123"),
                  role="admin", fullname="Администратор Школы")
     teacher = User(username="teacher", password_hash=generate_password_hash("teach123"),
                    role="teacher", fullname="Иван Иванов (Учитель)")
-    students = [
-        User(username="student",  password_hash=generate_password_hash("stud123"),
-             role="student", fullname="Пётр Петров (Отличник)"),
-        User(username="student2", password_hash=generate_password_hash("stud123"),
-             role="student", fullname="Анна Смирнова (Хорошистка)"),
-    ]
-    db.session.add_all([admin, teacher] + students)
+
+    students = []
+    # Сценарии для разных типов учеников
+    profiles = {
+        "Отличник": [5, 5, 5, 5],
+        "Хорошист": [4, 4, 5, 4],
+        "Среднячок": [3, 4, 3, 4],
+        "Троечник": [3, 3, 3, 3],
+        "Двоечник": [2, 2, 3, 2],
+    }
+
+    # Создадим 30 учеников, циклом раздадим им профили
+    for i in range(1, 31):
+        if i <= 5:
+            prof = "Отличник"
+        elif i <= 12:
+            prof = "Хорошист"
+        elif i <= 22:
+            prof = "Среднячок"
+        elif i <= 28:
+            prof = "Троечник"
+        else:
+            prof = "Двоечник"
+
+        u = User(
+            username=f"student{i}",
+            password_hash=generate_password_hash("stud123"),
+            role="student",
+            fullname=f"Ученик {i} ({prof})"
+        )
+        db.session.add(u)
+        students.append((u, profiles[prof]))
+
+    db.session.add_all([admin, teacher])
     db.session.commit()
 
-    # Seed grades (по четвертям, без недель)
-    patterns = {
-        "Отличник": [5, 5, 5, 5],
-        "Хорошистка": [4, 5, 4, 5],
-    }
-    for st in students:
-        label = (st.fullname or "").split("(")[-1].replace(")", "").strip()
-        base_pattern = patterns.get(label, [3, 4, 4, 5])
+    # Добавляем оценки
+    for u, pattern in students:
         for subj in [s1, s2, s3]:
-            for q, val in enumerate(base_pattern, start=1):
-                if not (2 <= val <= 5):
-                    val = 3
-                g = Grade(student_id=st.id, subject_id=subj.id, value=val,
+            for q, val in enumerate(pattern, start=1):
+                g = Grade(student_id=u.id, subject_id=subj.id, value=val,
                           year=current_year(), quarter=q)
                 db.session.add(g)
     db.session.commit()
-    print("Demo data created. Users: admin/admin123, teacher/teach123, student*/stud123")
+
+    print("Demo data created! Users:")
+    print("  admin/admin123, teacher/teach123, student1..30/stud123")
+
 
 # ───────── Auth ─────────
 @app.route("/")
