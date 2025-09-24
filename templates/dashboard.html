@@ -4,22 +4,44 @@
 
 {% block content %}
 <div class="row g-3">
-  {% for item in news %}
+  <!-- Карточка с диаграммой -->
   <div class="col-md-6">
-    <div class="news-card card shadow-sm h-100">
-      <div class="news-img-wrapper">
-        <img src="{{ item.image }}" class="card-img-top" alt="news image">
-        {% if item.badge %}
-        <span class="news-badge {{ item.badge.class }}">{{ item.badge.text }}</span>
-        {% endif %}
+    <div class="card shadow-sm news-card">
+      <div class="card-body">
+        <h5 class="card-title">📊 Статистика по оценкам</h5>
+        <canvas id="gradesChart" width="400" height="200"></canvas>
       </div>
-	  <div class="card shadow-sm mb-4">
-  <div class="card-body">
-    <h5 class="card-title">📊 Статистика по оценкам</h5>
-    <canvas id="gradesChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- Карточка с новостью про gov.kz -->
+  <div class="col-md-6">
+    <div class="card shadow-sm news-card">
+      <div class="news-img-wrapper">
+        <img src="https://picsum.photos/400/200?random=2" alt="Новости">
+      </div>
+      <div class="card-body">
+        <p class="card-text">Новости Казахстана</p>
+        <a href="https://www.gov.kz/memleket/entities/edu?lang=ru" class="btn btn-gradient btn-sm">Подробнее</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Карточка с новостью про GitHub -->
+  <div class="col-md-6">
+    <div class="card shadow-sm news-card">
+      <div class="news-img-wrapper">
+        <img src="https://picsum.photos/400/200?random=3" alt="GitHub">
+      </div>
+      <div class="card-body">
+        <p class="card-text">Обновления сайта</p>
+        <a href="https://github.com/AlexandrMarivech/school-diary" class="btn btn-gradient btn-sm">Подробнее</a>
+      </div>
+    </div>
   </div>
 </div>
 
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const ctx = document.getElementById('gradesChart');
@@ -34,17 +56,4 @@ new Chart(ctx, {
   }
 });
 </script>
-	  
-      <div class="card-body">
-        <h5 class="card-title">{{ item.title }}</h5>
-        <p class="card-text">{{ item.desc }}</p>
-        <a href="{{ item.url }}" target="_blank" class="btn btn-sm btn-gradient">
-          Подробнее →
-        </a>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
 {% endblock %}
