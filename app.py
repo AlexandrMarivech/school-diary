@@ -414,6 +414,87 @@ def admin_page():
         fullname = request.form.get("fullname", "").strip()
         password = request.form["password"].strip()
         role = request.form["role"]
+
+        if username and password and len(password) > 4 and role in ["student", "teacher", "admin"]:
+            if User.query.filter_by(username=username).first():
+                message = "Пользователь с таким логином уже существует"
+                flash(message, "danger")
+            else:
+                u = User(
+                    username=username,
+                    password_hash=generate_password_hash(password),
+                    role=role,
+                    fullname=fullname
+                )
+                db.session.add(u)
+                db.session.commit()
+                message = "Пользователь создан"
+                flash(message, "success")
+        else:
+            message = "Неверные данные (пароль >4 символов, корректная роль)"
+            flash(message, "danger")
+
+    users = User.query.all()
+    return render_template("admin.html", users=users, message=message)
+
+
+# ───────── Admin: редактирование пользователя ─────────
+@app.route("/edit_user/<int:user_id>", methods=["POST"])
+def edit_user(user_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        flash("Доступ только для админов", "danger")
+        return redirect(url_for("login"))
+
+    user = User.query.get_or_404(user_id)
+
+    username = request.form.get("username", "").strip()
+    fullname = request.form.get("fullname", "").strip()
+    role = request.form.get("role", "").strip()
+    password = request.form.get("password", "").strip()
+
+    if username:
+        user.username = username
+    user.fullname = fullname
+    if role in ["student", "teacher", "admin"]:
+        user.role = role
+    if password and len(password) > 4:
+        user.password_hash = generate_password_hash(password)
+
+    db.session.commit()
+    flash("Пользователь обновлён", "success")
+    return redirect(url_for("admin_page"))
+
+
+# ───────── Admin: удаление пользователя ─────────
+@app.route("/delete_user/<int:user_id>", methods=["POST"])
+def delete_user(user_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        flash("Доступ только для админов", "danger")
+        return redirect(url_for("login"))
+
+    user = User.query.get_or_404(user_id)
+
+    # Защита — нельзя удалить администратора
+    if user.role == "admin":
+        flash("Нельзя удалить администратора!", "danger")
+        return redirect(url_for("admin_page"))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash("Пользователь удалён", "info")
+    return redirect(url_for("admin_page"))
+
+
+    if "user_id" not in session or session.get("role") != "admin":
+        flash("Доступ только для админов", "danger")
+        return redirect(url_for("login"))
+
+    message = ""
+    if request.method == "POST":
+        username = request.form["username"].strip()
+        fullname = request.form.get("fullname", "").strip()
+        password = request.form["password"].strip()
+        role = request.form["role"]
         if username and password and len(password) > 4 and role in ["student", "teacher", "admin"]:
             if User.query.filter_by(username=username).first():
                 message = "Пользователь с таким логином уже существует"
