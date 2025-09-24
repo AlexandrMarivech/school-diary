@@ -353,64 +353,6 @@ def export_teacher_xlsx():
     wb.save(filepath)
     return send_file(filepath, as_attachment=True)
 
-@app.route("/export/admin_xlsx")
-def export_admin_xlsx():
-    # Админ: сводная по ученикам/предметам (средние за год)
-    if "user_id" not in session or session.get("role") != "admin":
-        flash("Доступ только для админов", "danger")
-        return redirect(url_for("login"))
-
-    year = int(request.args.get("year", current_year()))
-    students = User.query.filter_by(role="student").all()
-    subjects = Subject.query.all()
-    subject_map = {s.id: s.name for s in subjects}
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = f"Итоги {year}"
-
-    # Заголовки
-    headers = ["Ученик"] + [s.name for s in subjects] + ["Общий средний"]
-    ws.append(headers)
-
-    # Данные
-    for st in students:
-        q = Grade.query.filter_by(student_id=st.id, year=year).all()
-        subj_avgs = {}
-        for g in q:
-            name = subject_map.get(g.subject_id, "Неизв.")
-            subj_avgs.setdefault(name, []).append(g.value)
-        row = [st.fullname or st.username]
-        vals_for_mean = []
-        for s in subjects:
-            vals = subj_avgs.get(s.name, [])
-            avg = round(sum(vals)/len(vals), 2) if vals else ""
-            row.append(avg)
-            if isinstance(avg, (int, float)):
-                vals_for_mean.append(avg)
-        overall = round(sum(vals_for_mean)/len(vals_for_mean), 2) if vals_for_mean else ""
-        row.append(overall)
-        ws.append(row)
-
-    autosize_columns(ws)
-
-    # Диаграмма по общему среднему (последняя колонка)
-    last_col = ws.max_column
-    data_end = ws.max_row
-    if data_end >= 2:
-        chart = BarChart()
-        chart.title = "Общий средний балл (по ученикам)"
-        values = Reference(ws, min_col=last_col, min_row=1, max_row=data_end)
-        cats = Reference(ws, min_col=1, min_row=2, max_row=data_end)
-        chart.add_data(values, titles_from_data=True)
-        chart.set_categories(cats)
-        chart.y_axis.title = "Средний балл"
-        chart.x_axis.title = "Ученик"
-        ws.add_chart(chart, f"{get_column_letter(last_col+2)}2")
-
-    filepath = os.path.join(INSTANCE_DIR, f"admin_report_{year}.xlsx")
-    wb.save(filepath)
-    return send_file(filepath, as_attachment=True)
 
 @app.route("/export/student_xlsx")
 def export_student_xlsx():
@@ -532,6 +474,7 @@ def admin_reports():
                            subjects=subjects)
 
 
+# ───────── Admin: экспорт отчёта в Excel ─────────
 @app.route("/export/admin_xlsx")
 def export_admin_xlsx():
     # Админ: сводная по ученикам/предметам (средние за год)
@@ -559,6 +502,7 @@ def export_admin_xlsx():
         for g in q:
             name = subject_map.get(g.subject_id, "Неизв.")
             subj_avgs.setdefault(name, []).append(g.value)
+
         row = [st.fullname or st.username]
         vals_for_mean = []
         for s in subjects:
@@ -567,6 +511,7 @@ def export_admin_xlsx():
             row.append(avg)
             if isinstance(avg, (int, float)):
                 vals_for_mean.append(avg)
+
         overall = round(sum(vals_for_mean)/len(vals_for_mean), 2) if vals_for_mean else ""
         row.append(overall)
         ws.append(row)
@@ -579,7 +524,7 @@ def export_admin_xlsx():
             max_len = max(max_len, len(str(cell.value)) if cell.value else 0)
         ws.column_dimensions[col_letter].width = max(12, min(40, max_len + 2))
 
-    # Диаграмма по общему среднему (последняя колонка)
+    # Диаграмма по общему среднему
     last_col = ws.max_column
     data_end = ws.max_row
     if data_end >= 2:
@@ -596,6 +541,7 @@ def export_admin_xlsx():
     filepath = os.path.join(INSTANCE_DIR, f"admin_report_{year}.xlsx")
     wb.save(filepath)
     return send_file(filepath, as_attachment=True)
+
 
     
 # ───────── Admin Dashboard ─────────
