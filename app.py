@@ -133,9 +133,6 @@ def dashboard():
         return redirect(url_for("login"))
 
     role = session.get("role")
-    # Админа на список пользователей — там есть кнопка в отчёты
-    if role == "admin":
-        return redirect(url_for("admin_page"))
 
     news = [
         {"title": "Запущена олимпиада", "desc": "Математика и русский язык.",
@@ -143,7 +140,9 @@ def dashboard():
         {"title": "Обновления сайта", "desc": "Добавлены отчёты.",
          "url": "https://github.com/AlexandrMarivech/school-diary", "image": "https://picsum.photos/400/200?random=2"},
     ]
+
     return render_template("dashboard.html", role=role, news=news)
+
 
 # ───────── Student ─────────
 @app.route("/student")

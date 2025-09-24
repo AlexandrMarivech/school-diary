@@ -69,19 +69,22 @@
                 </select>
               </td>
               <td class="text-center">
-                {% if u.role != 'admin' %}
-                  <input name="password" type="password" class="form-control form-control-sm mb-1" placeholder="новый пароль (если нужно)">
-                  <div class="btn-group btn-group-sm">
-                    <button type="submit" class="btn btn-success" title="Сохранить">✅</button>
-                    <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}" style="display:inline;">
-                      <button type="submit" class="btn btn-outline-danger" title="Удалить"
-                              onclick="return confirm('Удалить пользователя {{ u.username }}?');">🗑</button>
-                    </form>
-                  </div>
-                {% else %}
-                  <span class="text-muted">(Админ — нельзя редактировать/удалять)</span>
-                {% endif %}
-              </td>
+  {% if u.role != 'admin' %}
+    <input name="password" type="password" class="form-control form-control-sm mb-1" placeholder="новый пароль (если нужно)">
+    <div class="btn-group btn-group-sm">
+      <button type="submit" class="btn btn-success" title="Сохранить">✅</button>
+    </div>
+  </form>
+  <!-- отдельная форма для удаления -->
+  <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}" style="display:inline;">
+    <button type="submit" class="btn btn-outline-danger btn-sm" title="Удалить"
+            onclick="return confirm('Удалить пользователя {{ u.username }}?');">🗑</button>
+  </form>
+  {% else %}
+    <span class="text-muted">(Админ — нельзя редактировать/удалять)</span>
+  {% endif %}
+</td>
+
             </form>
           </tr>
           {% endfor %}
