@@ -13,6 +13,28 @@
         <span class="news-badge {{ item.badge.class }}">{{ item.badge.text }}</span>
         {% endif %}
       </div>
+	  <div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title">📊 Статистика по оценкам</h5>
+    <canvas id="gradesChart" height="120"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('gradesChart');
+new Chart(ctx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Отличники', 'Хорошисты', 'Троечники', 'Двоечники'],
+    datasets: [{
+      data: [5, 10, 12, 3], // пока статично, потом можно связать с БД
+      backgroundColor: ['#198754','#0d6efd','#ffc107','#dc3545']
+    }]
+  }
+});
+</script>
+	  
       <div class="card-body">
         <h5 class="card-title">{{ item.title }}</h5>
         <p class="card-text">{{ item.desc }}</p>

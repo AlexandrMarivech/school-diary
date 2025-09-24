@@ -6,6 +6,7 @@ import csv, io, os, datetime
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 from openpyxl.utils import get_column_letter
+from datetime import datetime
 
 # ───────── Flask & DB config ─────────
 app = Flask(__name__)
@@ -45,10 +46,12 @@ class Grade(db.Model):
 def current_year():
     return datetime.date.today().year
 
+
+# Позволяет вызывать {{ current_year() }} прямо в шаблонах
 @app.context_processor
 def inject_globals():
-    # Позволяет вызывать {{ current_year() }} прямо в шаблонах
-    return dict(current_year=current_year)
+    return dict(current_year=current_year, datetime=datetime)
+
 
 
 def create_demo_data():
@@ -166,7 +169,7 @@ def dashboard():
      "image": "https://picsum.photos/400/200?random=2",
      "badge": {"text": "💡 Обновление", "class": "tip"}},
     {"title": "Новые проекты", "desc": "Республиканские инициативы для школ.",
-     "url": "https://bilimland.kz/ru/news",
+     "url": "https://bilimland.kz/ru/news-articles",
      "image": "https://picsum.photos/400/200?random=3",
      "badge": {"text": "🆕 Новое", "class": "new"}},
 ]
