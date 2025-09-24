@@ -157,11 +157,20 @@ def dashboard():
     role = session.get("role")
 
     news = [
-        {"title": "Запущена олимпиада", "desc": "Математика и русский язык.",
-         "url": "https://edu.gov.ru/", "image": "https://picsum.photos/400/200?random=1"},
-        {"title": "Обновления сайта", "desc": "Добавлены отчёты.",
-         "url": "https://github.com/AlexandrMarivech/school-diary", "image": "https://picsum.photos/400/200?random=2"},
-    ]
+    {
+        "title": "Министерство просвещения РК",
+        "desc": "Официальные новости в сфере образования Казахстана.",
+        "url": "https://www.gov.kz/memleket/entities/edu?lang=ru",
+        "image": "https://picsum.photos/400/200?random=10"
+    },
+    {
+        "title": "Обновления сайта",
+        "desc": "Добавлены отчёты и новые функции дневника.",
+        "url": "https://github.com/AlexandrMarivech/school-diary",
+        "image": "https://picsum.photos/400/200?random=11"
+    }
+]
+
 
     return render_template("dashboard.html", role=role, news=news)
 
