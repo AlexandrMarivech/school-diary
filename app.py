@@ -577,7 +577,7 @@ def delete_user(user_id):
     flash("Пользователь удалён", "success")
     return redirect(url_for("admin_page"))
     
-    # ───────── Admin Dashboard ─────────
+# ───────── Admin Dashboard ─────────
 @app.route("/admin/dashboard")
 def admin_dashboard():
     if "user_id" not in session or session.get("role") != "admin":

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>👨‍💼 Панель администратора</h3>
+  <p>Добро пожаловать, {{ session.fullname or session.username }}!</p>
+
+  <div class="list-group">
+    <a href="{{ url_for('admin_page') }}" class="list-group-item list-group-item-action">
+      👥 Управление пользователями
+    </a>
+    <a href="{{ url_for('admin_reports') }}" class="list-group-item list-group-item-action">
+      📊 Отчёты по ученикам
+    </a>
+    <a href="{{ url_for('export_admin_xlsx', year=current_year()) }}" class="list-group-item list-group-item-action">
+      ⬇ Скачать общий отчёт в Excel
+    </a>
+  </div>
+</div>
+{% endblock %}
