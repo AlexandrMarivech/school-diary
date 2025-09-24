@@ -47,8 +47,9 @@ def current_year():
 
 @app.context_processor
 def inject_globals():
-    # Чтобы в шаблонах работало {{ current_year() }}
+    # Позволяет вызывать {{ current_year() }} прямо в шаблонах
     return dict(current_year=current_year)
+
 
 def create_demo_data():
     db.drop_all()
@@ -490,6 +491,7 @@ def admin_page():
     users = User.query.all()
     return render_template("admin.html", users=users, message=message)
 
+
 @app.route("/admin/reports")
 def admin_reports():
     if "user_id" not in session or session.get("role") != "admin":
@@ -529,53 +531,72 @@ def admin_reports():
                            total_students=len(students),
                            subjects=subjects)
 
-@app.route("/admin/edit/<int:user_id>", methods=["POST"])
-def edit_user(user_id):
+
+@app.route("/export/admin_xlsx")
+def export_admin_xlsx():
+    # Админ: сводная по ученикам/предметам (средние за год)
     if "user_id" not in session or session.get("role") != "admin":
         flash("Доступ только для админов", "danger")
         return redirect(url_for("login"))
 
-    user = User.query.get_or_404(user_id)
-    username = request.form["username"].strip()
-    fullname = request.form.get("fullname", "").strip()
-    role = request.form["role"]
-    password = request.form.get("password", "").strip()
+    year = int(request.args.get("year", current_year()))
+    students = User.query.filter_by(role="student").all()
+    subjects = Subject.query.all()
+    subject_map = {s.id: s.name for s in subjects}
 
-    if username != user.username:
-        existing = User.query.filter(User.username == username, User.id != user.id).first()
-        if existing:
-            flash("Логин уже существует", "danger")
-            return redirect(url_for("admin_page"))
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Итоги {year}"
 
-    if password and len(password) <= 4:
-        flash("Пароль слишком короткий (>4 символов)", "danger")
-        return redirect(url_for("admin_page"))
+    # Заголовки
+    headers = ["Ученик"] + [s.name for s in subjects] + ["Общий средний"]
+    ws.append(headers)
 
-    user.username = username
-    user.fullname = fullname
-    user.role = role
-    if password:
-        user.password_hash = generate_password_hash(password)
+    # Данные
+    for st in students:
+        q = Grade.query.filter_by(student_id=st.id, year=year).all()
+        subj_avgs = {}
+        for g in q:
+            name = subject_map.get(g.subject_id, "Неизв.")
+            subj_avgs.setdefault(name, []).append(g.value)
+        row = [st.fullname or st.username]
+        vals_for_mean = []
+        for s in subjects:
+            vals = subj_avgs.get(s.name, [])
+            avg = round(sum(vals)/len(vals), 2) if vals else ""
+            row.append(avg)
+            if isinstance(avg, (int, float)):
+                vals_for_mean.append(avg)
+        overall = round(sum(vals_for_mean)/len(vals_for_mean), 2) if vals_for_mean else ""
+        row.append(overall)
+        ws.append(row)
 
-    db.session.commit()
-    flash("Пользователь обновлён", "success")
-    return redirect(url_for("admin_page"))
+    # Автоширина
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            max_len = max(max_len, len(str(cell.value)) if cell.value else 0)
+        ws.column_dimensions[col_letter].width = max(12, min(40, max_len + 2))
 
-@app.route("/admin/delete/<int:user_id>", methods=["POST"])
-def delete_user(user_id):
-    if "user_id" not in session or session.get("role") != "admin":
-        flash("Доступ только для админов", "danger")
-        return redirect(url_for("login"))
+    # Диаграмма по общему среднему (последняя колонка)
+    last_col = ws.max_column
+    data_end = ws.max_row
+    if data_end >= 2:
+        chart = BarChart()
+        chart.title = "Общий средний балл (по ученикам)"
+        values = Reference(ws, min_col=last_col, min_row=1, max_row=data_end)
+        cats = Reference(ws, min_col=1, min_row=2, max_row=data_end)
+        chart.add_data(values, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.y_axis.title = "Средний балл"
+        chart.x_axis.title = "Ученик"
+        ws.add_chart(chart, f"{get_column_letter(last_col+2)}2")
 
-    user = User.query.get_or_404(user_id)
-    if user.role == "admin":
-        flash("Нельзя удалить администратора", "danger")
-        return redirect(url_for("admin_page"))
+    filepath = os.path.join(INSTANCE_DIR, f"admin_report_{year}.xlsx")
+    wb.save(filepath)
+    return send_file(filepath, as_attachment=True)
 
-    db.session.delete(user)
-    db.session.commit()
-    flash("Пользователь удалён", "success")
-    return redirect(url_for("admin_page"))
     
 # ───────── Admin Dashboard ─────────
 @app.route("/admin/dashboard")
