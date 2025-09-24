@@ -576,6 +576,16 @@ def delete_user(user_id):
     db.session.commit()
     flash("Пользователь удалён", "success")
     return redirect(url_for("admin_page"))
+    
+    # ───────── Admin Dashboard ─────────
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if "user_id" not in session or session.get("role") != "admin":
+        flash("Доступ только для админов", "danger")
+        return redirect(url_for("login"))
+
+    return render_template("admin_dashboard.html")
+
 
 # ───────── CLI ─────────
 if __name__ == "__main__":
