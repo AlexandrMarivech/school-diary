@@ -234,9 +234,19 @@ def teacher_page():
         db.session.commit()
         message = "Оценки сохранены."
 
+    # ⚡ исправлено: передаём функцию, а не число
     return render_template("teacher.html",
                            subjects=subjects, students=students,
-                           message=message, current_year=current_year())
+                           message=message, current_year=current_year)
+
+
+# ⚡ новый алиас для старых ссылок
+@app.route("/export/class")
+def export_class():
+    # просто перенаправляем к export_teacher_xlsx
+    return redirect(url_for("export_teacher_xlsx", **request.args))
+
+
 
 @app.route("/teacher/report")
 def teacher_report():
