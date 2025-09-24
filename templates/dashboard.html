@@ -3,18 +3,26 @@
 {% block page_subtitle %}Новости, обновления и важная информация школы{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row g-3">
   {% for item in news %}
-    <div class="col-md-6">
-      <div class="card shadow-sm mb-3">
-        <img src="{{ item.image }}" class="card-img-top" alt="news">
-        <div class="card-body">
-          <h5 class="card-title">{{ item.title }}</h5>
-          <p class="card-text">{{ item.desc }}</p>
-          <a href="{{ item.url }}" class="btn btn-sm btn-primary" target="_blank">Подробнее</a>
-        </div>
+  <div class="col-md-6">
+    <div class="news-card card shadow-sm h-100">
+      <div class="news-img-wrapper">
+        <img src="{{ item.image }}" class="card-img-top" alt="news image">
+        {% if item.badge %}
+        <span class="news-badge {{ item.badge.class }}">{{ item.badge.text }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <h5 class="card-title">{{ item.title }}</h5>
+        <p class="card-text">{{ item.desc }}</p>
+        <a href="{{ item.url }}" target="_blank" class="btn btn-sm btn-gradient">
+          Подробнее →
+        </a>
       </div>
     </div>
+  </div>
   {% endfor %}
 </div>
+
 {% endblock %}
