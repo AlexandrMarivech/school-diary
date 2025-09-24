@@ -1,36 +1,43 @@
 {% extends "base.html" %}
-{% block page_title %}✏️ Редактирование пользователя{% endblock %}
-{% block page_subtitle %}Изменение данных пользователя{% endblock %}
-
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form method="post" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Логин</label>
-                <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">ФИО</label>
-                <input type="text" name="fullname" class="form-control" value="{{ user.fullname or '' }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Пароль</label>
-                <input type="password" name="password" class="form-control" placeholder="Новый пароль (оставьте пустым, чтобы не менять)">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Роль</label>
-                <select name="role" class="form-select" required>
-                    <option value="student" {% if user.role == 'student' %}selected{% endif %}>Ученик</option>
-                    <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>Учитель</option>
-                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Админ</option>
-                </select>
-            </div>
-            <div class="col-12">
-                <a href="{{ url_for('admin_page') }}" class="btn btn-secondary">← Назад</a>
-                <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
-            </div>
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 rounded-3">
+      <div class="card-body">
+        <h4 class="card-title mb-3">✏️ Редактирование пользователя</h4>
+
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Логин</label>
+            <input name="username" value="{{ user.username }}" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">ФИО</label>
+            <input name="fullname" value="{{ user.fullname }}" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Пароль</label>
+            <input name="password" type="password" placeholder="(оставь пустым, если не менять)" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Роль</label>
+            <select name="role" class="form-select">
+              <option value="student" {% if user.role=='student' %}selected{% endif %}>Ученик</option>
+              <option value="teacher" {% if user.role=='teacher' %}selected{% endif %}>Учитель</option>
+              <option value="admin" {% if user.role=='admin' %}selected{% endif %}>Админ</option>
+            </select>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('admin_page') }}" class="btn btn-outline-secondary">← Назад</a>
+            <button class="btn btn-success">💾 Сохранить изменения</button>
+          </div>
         </form>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

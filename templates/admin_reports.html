@@ -1,70 +1,68 @@
 {% extends "base.html" %}
 {% block page_title %}📊 Учёт успеваемости — отчёты администратора{% endblock %}
-{% block page_subtitle %}Средние баллы по ученикам за {{ year }} год{% endblock %}
+{% block page_subtitle %}Средние баллы по ученикам за выбранный год{% endblock %}
 
 {% block content %}
+<!-- Flash-сообщения -->
 {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
 {% endwith %}
 
 <div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <form class="row g-3" method="get">
-            <div class="col-md-3">
-                <label class="form-label">Год</label>
-                <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2000" max="{{ current_year }}">
-            </div>
-            <div class="col-md-3">
-                <button class="btn btn-primary mt-4">🔎 Показать</button>
-            </div>
-        </form>
-    </div>
+  <div class="card-body">
+    <form class="row g-2" method="get" action="{{ url_for('admin_reports') }}">
+      <div class="col-auto">
+        <label class="col-form-label">Год</label>
+      </div>
+      <div class="col-auto">
+        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2000" max="{{ current_year() + 1 }}">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Показать</button>
+      </div>
+      <div class="col-auto ms-auto">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_admin_xlsx', year=year) }}">
+          ⬇ Скачать отчёт в Excel
+        </a>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="card-title m-0">Итоги по ученикам (всего: {{ total_students }})</h5>
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_class', year=year) }}">
-                ⬇ Скачать CSV (все предметы, год)
-            </a>
-        </div>
-        {% if report_data and subjects %}
-            <div class="table-responsive">
-                <table class="table table-striped align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Ученик</th>
-                            {% for subject in subjects %}
-                                <th>{{ subject.name }}</th>
-                            {% endfor %}
-                            <th>Общий средний</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in report_data %}
-                            <tr>
-                                <td>{{ row.student }}</td>
-                                {% for subject in subjects %}
-                                    <td>{{ row.subj_avgs.get(subject.name, '-') }}</td>
-                                {% endfor %}
-                                <td>{{ row.overall | default('-') }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-muted">Нет данных за {{ year }} год. Запустите <code>python app.py initdb</code> или добавьте студентов/оценки через админ-панель.</p>
-        {% endif %}
+  <div class="card-body">
+    <h5 class="card-title m-0 mb-2">Итоги по ученикам (всего: {{ total_students }})</h5>
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Ученик</th>
+            {% for subject in subjects %}
+              <th>{{ subject.name }}</th>
+            {% endfor %}
+            <th>Общий средний</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in report_data %}
+          <tr>
+            <td>{{ row.student }}</td>
+            {% for subject in subjects %}
+              <td>{{ row.subj_avgs.get(subject.name, '-') }}</td>
+            {% endfor %}
+            <td>{{ row.overall|default('-') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% if not report_data %}
+        <p class="text-muted">Нет данных за {{ year }} год</p>
+      {% endif %}
     </div>
+  </div>
 </div>
-
-<a href="{{ url_for('admin_page') }}" class="btn btn-secondary mt-3">← Назад</a>
 {% endblock %}

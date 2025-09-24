@@ -1,20 +1,21 @@
 {% extends "base.html" %}
-{% block page_title %}Дашборд{% endblock %}
-{% block page_subtitle %}Добро пожаловать, {{ session.fullname or session.username }}!{% endblock %}
+{% block html_title %}Электронный дневник — главная{% endblock %}
+{% block page_title %}Главная панель{% endblock %}
+{% block page_subtitle %}НОВАЯ ПАНЕЛЬ — если видишь это, значит деплой прошёл успешно{% endblock %}
 
 {% block content %}
 <div class="row">
-    {% for item in news %}
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm">
-                <img src="{{ item.image }}" class="card-img-top" alt="{{ item.title }}">
-                <div class="card-body">
-                    <h5 class="card-title">{{ item.title }}</h5>
-                    <p class="card-text">{{ item.desc }}</p>
-                    <a href="{{ item.url }}" class="btn btn-outline-primary btn-sm">Подробнее</a>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
+  {% for n in news %}
+  <div class="col-md-4">
+    <div class="card shadow-sm mb-4 h-100">
+      <img src="{{ n.image }}" class="card-img-top" alt="news">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">{{ n.title }}</h5>
+        <p class="card-text small flex-grow-1">{{ n.desc }}</p>
+        <a href="{{ n.url }}" target="_blank" class="btn btn-primary btn-sm mt-auto">Читать</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% endblock %}
