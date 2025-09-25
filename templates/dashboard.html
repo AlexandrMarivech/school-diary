@@ -8,7 +8,9 @@
   <div class="col-md-6">
     <div class="card shadow-sm news-card">
       <div class="card-body">
+        <!-- Заголовок блока -->
         <h5 class="card-title">📊 Статистика по оценкам</h5>
+        <!-- Здесь отрисуется круговая диаграмма -->
         <canvas id="gradesChart" width="400" height="200"></canvas>
       </div>
     </div>
@@ -17,10 +19,12 @@
   <!-- Карточка с новостью про gov.kz -->
   <div class="col-md-6">
     <div class="card shadow-sm news-card">
+      <!-- Картинка для карточки -->
       <div class="news-img-wrapper">
         <img src="https://picsum.photos/400/200?random=2" alt="Новости">
       </div>
       <div class="card-body">
+        <!-- Подпись и кнопка-ссылка -->
         <p class="card-text">Новости Казахстана</p>
         <a href="https://www.gov.kz/memleket/entities/edu?lang=ru" class="btn btn-gradient btn-sm">Подробнее</a>
       </div>
@@ -30,10 +34,12 @@
   <!-- Карточка с новостью про GitHub -->
   <div class="col-md-6">
     <div class="card shadow-sm news-card">
+      <!-- Картинка для карточки -->
       <div class="news-img-wrapper">
         <img src="https://picsum.photos/400/200?random=3" alt="GitHub">
       </div>
       <div class="card-body">
+        <!-- Подпись и кнопка-ссылка -->
         <p class="card-text">Обновления сайта</p>
         <a href="https://github.com/AlexandrMarivech/school-diary" class="btn btn-gradient btn-sm">Подробнее</a>
       </div>
@@ -41,16 +47,20 @@
   </div>
 </div>
 
-<!-- Chart.js -->
+<!-- Подключение библиотеки Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+/* Настройка диаграммы по оценкам */
 const ctx = document.getElementById('gradesChart');
 new Chart(ctx, {
-  type: 'doughnut',
+  type: 'doughnut', // Круговая диаграмма
   data: {
+    // Подписи для каждого сегмента
     labels: ['Отличники', 'Хорошисты', 'Троечники', 'Двоечники'],
     datasets: [{
-      data: [5, 10, 12, 3], // пока статично, потом можно связать с БД
+      // Данные (пока фиксированные числа, позже можно сделать из базы)
+      data: [5, 10, 12, 3],
+      // Цвета для сегментов
       backgroundColor: ['#198754','#0d6efd','#ffc107','#dc3545']
     }]
   }

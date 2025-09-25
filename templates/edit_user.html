@@ -4,24 +4,31 @@
   <div class="col-md-6">
     <div class="card shadow-sm border-0 rounded-3">
       <div class="card-body">
+        <!-- Заголовок страницы -->
         <h4 class="card-title mb-3">✏️ Редактирование пользователя</h4>
 
+        <!-- Форма для редактирования -->
         <form method="post">
+          <!-- Поле логина -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Логин</label>
             <input name="username" value="{{ user.username }}" class="form-control" required>
           </div>
 
+          <!-- Поле ФИО -->
           <div class="mb-3">
             <label class="form-label fw-semibold">ФИО</label>
             <input name="fullname" value="{{ user.fullname }}" class="form-control">
           </div>
 
+          <!-- Поле пароля -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Пароль</label>
+            <!-- Если пароль оставить пустым, он не изменится -->
             <input name="password" type="password" placeholder="(оставь пустым, если не менять)" class="form-control">
           </div>
 
+          <!-- Выбор роли -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Роль</label>
             <select name="role" class="form-select">
@@ -31,8 +38,11 @@
             </select>
           </div>
 
+          <!-- Кнопки: назад и сохранить -->
           <div class="d-flex justify-content-between mt-4">
+            <!-- Кнопка "Назад" возвращает на страницу со списком пользователей -->
             <a href="{{ url_for('admin_page') }}" class="btn btn-outline-secondary">← Назад</a>
+            <!-- Кнопка "Сохранить" обновит данные -->
             <button class="btn btn-success">💾 Сохранить изменения</button>
           </div>
         </form>

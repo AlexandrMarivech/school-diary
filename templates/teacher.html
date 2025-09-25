@@ -3,19 +3,26 @@
 
 <div class="row">
   <div class="col-lg-12">
+    <!-- Основная карточка для ввода оценок -->
     <div class="card shadow-sm border-0 rounded-3 mb-4">
       <div class="card-body">
         <h4 class="card-title mb-3">👨‍🏫 Учитель — ввод оценок</h4>
+
+        <!-- Сообщение об успехе (если оценки сохранены) -->
         {% if message %}
           <div class="alert alert-success">{{ message }}</div>
         {% endif %}
 
+        <!-- Форма для ввода параметров и оценок -->
         <form method="post">
+          <!-- Выбор предмета, года, четверти и недели -->
           <div class="row g-3 mb-3">
             <div class="col-md-3">
               <label class="form-label fw-semibold">Предмет</label>
               <select name="subject" class="form-select form-select-sm">
-                {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                {% for s in subjects %}
+                  <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
               </select>
             </div>
             <div class="col-md-3">
@@ -33,6 +40,7 @@
             </div>
           </div>
 
+          <!-- Таблица со списком всех учеников -->
           <h5 class="mt-4">📋 Список учеников</h5>
           <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -45,7 +53,9 @@
               <tbody>
               {% for st in students %}
                 <tr>
+                  <!-- ФИО ученика -->
                   <td>{{ st.fullname or st.username }}</td>
+                  <!-- Поле для ввода оценки -->
                   <td>
                     <input name="student_{{ st.id }}" class="form-control form-control-sm" placeholder="например 4">
                   </td>
@@ -54,6 +64,8 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Кнопка для сохранения всех оценок -->
           <button class="btn btn-primary mt-3">💾 Сохранить оценки</button>
         </form>
       </div>
@@ -61,19 +73,23 @@
   </div>
 </div>
 
-<!-- Экспорт -->
+<!-- Отдельный блок для экспорта оценок -->
 <div class="row">
   <div class="col-lg-12">
     <div class="card shadow-sm border-0 rounded-3">
       <div class="card-body">
         <h5 class="card-title mb-3">📤 Экспорт отчёта</h5>
+
+        <!-- Форма для выгрузки Excel-отчёта -->
         <form method="get" action="{{ url_for('export_teacher_xlsx') }}">
           <div class="row g-3 mb-3">
             <div class="col-md-3">
               <label class="form-label fw-semibold">Предмет</label>
               <select name="subject" class="form-select form-select-sm">
                 <option value="0">Все</option>
-                {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                {% for s in subjects %}
+                  <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
               </select>
             </div>
             <div class="col-md-3">
@@ -91,6 +107,8 @@
               <div class="form-text">0 = все недели</div>
             </div>
           </div>
+
+          <!-- Кнопки для экспорта и отчёта по классу -->
           <button class="btn btn-outline-secondary">⬇️ Скачать отчёт в Excel</button>
           <a href="{{ url_for('teacher_report') }}" class="btn btn-outline-primary ms-2">📊 Отчёт по классу</a>
         </form>

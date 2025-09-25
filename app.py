@@ -44,7 +44,9 @@ class Grade(db.Model):
 
 # ───────── Helpers ─────────
 def current_year():
-    return datetime.date.today().year
+    return datetime.now().year
+
+
 
 
 # Позволяет вызывать {{ current_year() }} прямо в шаблонах
@@ -679,10 +681,8 @@ def datetime_format(value, format="%d.%m.%Y %H:%M"):
 # Глобальные переменные в шаблонах
 @app.context_processor
 def utility_processor():
-    def current_year():
-        return datetime.now().year
-    # здесь возвращаем только current_year и datetime
     return dict(current_year=current_year, datetime=datetime)
+
 
 
 # Фильтр для форматирования даты/времени

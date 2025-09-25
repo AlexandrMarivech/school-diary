@@ -1,28 +1,41 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- Выровнял блок по центру экрана, чтобы форма входа смотрелась красиво -->
 <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
   <div class="col-md-6 col-lg-4">
+    <!-- Карточка с тенью и закруглёнными краями -->
     <div class="card shadow-lg border-0 rounded-4">
       <div class="card-body p-4">
+        <!-- Заголовок формы -->
         <h3 class="text-center mb-4">Вход в систему</h3>
         
+        <!-- Если данные введены неправильно, выводится красное сообщение об ошибке -->
         {% if error %}
           <div class="alert alert-danger text-center">{{ error }}</div>
         {% endif %}
         
+        <!-- Основная форма входа -->
         <form method="post">
+          <!-- Поле логина -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Логин</label>
-            <input name="username" class="form-control form-control-lg" placeholder="Введите логин" required>
+            <input name="username" class="form-control form-control-lg"
+                   placeholder="Введите логин" required>
           </div>
+
+          <!-- Поле пароля -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Пароль</label>
-            <input name="password" type="password" class="form-control form-control-lg" placeholder="Введите пароль" required>
+            <input name="password" type="password" class="form-control form-control-lg"
+                   placeholder="Введите пароль" required>
           </div>
+
+          <!-- Кнопка для отправки формы -->
           <button class="btn btn-primary w-100 btn-lg">Войти</button>
         </form>
         
         <hr>
+        <!-- Подсказка с тестовыми логинами и паролями -->
         <p class="text-muted small text-center">
           Демо-аккаунты: <br>
           <b>admin/admin123</b>, <b>teacher/teach123</b>, <b>student/stud123</b>

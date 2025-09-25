@@ -3,7 +3,7 @@
 {% block page_subtitle %}Средние баллы по ученикам за выбранный год{% endblock %}
 
 {% block content %}
-<!-- Flash-сообщения -->
+<!-- Здесь выводятся "всплывающие" уведомления (например: ошибки, успехи, подсказки) -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, message in messages %}
@@ -12,18 +12,23 @@
   {% endif %}
 {% endwith %}
 
+<!-- Панель с выбором года и кнопкой для скачивания отчёта -->
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <form class="row g-2" method="get" action="{{ url_for('admin_reports') }}">
+      <!-- Поле выбора года -->
       <div class="col-auto">
         <label class="col-form-label">Год</label>
       </div>
       <div class="col-auto">
-        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2000" max="{{ current_year() + 1 }}">
+        <input type="number" name="year" class="form-control form-control-sm"
+               value="{{ year }}" min="2000" max="{{ current_year() + 1 }}">
       </div>
+      <!-- Кнопка "Показать" для обновления таблицы -->
       <div class="col-auto">
         <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Показать</button>
       </div>
+      <!-- Кнопка для скачивания отчёта в Excel -->
       <div class="col-auto ms-auto">
         <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_admin_xlsx', year=year) }}">
           ⬇ Скачать отчёт в Excel
@@ -33,14 +38,21 @@
   </div>
 </div>
 
+<!-- Карточка с таблицей по итогам -->
 <div class="card shadow-sm">
   <div class="card-body">
-    <h5 class="card-title m-0 mb-2">Итоги по ученикам (всего: {{ total_students }})</h5>
+    <!-- Заголовок таблицы -->
+    <h5 class="card-title m-0 mb-2">
+      Итоги по ученикам (всего: {{ total_students }})
+    </h5>
+
+    <!-- Таблица с данными -->
     <div class="table-responsive">
       <table class="table table-striped align-middle">
         <thead class="table-light">
           <tr>
             <th>Ученик</th>
+            <!-- Заголовки по каждому предмету -->
             {% for subject in subjects %}
               <th>{{ subject.name }}</th>
             {% endfor %}
@@ -48,10 +60,12 @@
           </tr>
         </thead>
         <tbody>
+        <!-- Перебираем всех учеников и выводим их средние оценки -->
         {% for row in report_data %}
           <tr>
             <td>{{ row.student }}</td>
             {% for subject in subjects %}
+              <!-- Если нет оценки, то выводим прочерк "-" -->
               <td>{{ row.subj_avgs.get(subject.name, '-') }}</td>
             {% endfor %}
             <td>{{ row.overall|default('-') }}</td>
@@ -59,6 +73,8 @@
         {% endfor %}
         </tbody>
       </table>
+
+      <!-- Если данных нет, выводим сообщение -->
       {% if not report_data %}
         <p class="text-muted">Нет данных за {{ year }} год</p>
       {% endif %}

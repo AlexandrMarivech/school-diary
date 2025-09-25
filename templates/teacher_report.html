@@ -7,21 +7,26 @@
       <div class="card-body">
         <h3 class="card-title text-center mb-4">📊 Отчёт по классу</h3>
 
-        <!-- Форма фильтров -->
+        <!-- 🔹 Форма фильтров (учитель выбирает год, предмет и период) -->
         <form method="get" class="row g-3 mb-4">
+          <!-- Поле выбора года -->
           <div class="col-md-2">
             <label class="form-label">Год</label>
             <input type="number" name="year" value="{{ year }}" class="form-control form-control-sm">
           </div>
+          <!-- Выпадающий список с выбором предмета -->
           <div class="col-md-4">
             <label class="form-label">Предмет</label>
             <select name="subject" class="form-select form-select-sm">
               <option value="0">Все</option>
               {% for subj in subjects %}
-                <option value="{{ subj.id }}" {% if subj.id == subject_id %}selected{% endif %}>{{ subj.name }}</option>
+                <option value="{{ subj.id }}" {% if subj.id == subject_id %}selected{% endif %}>
+                  {{ subj.name }}
+                </option>
               {% endfor %}
             </select>
           </div>
+          <!-- Выбор периода: год, полугодие или конкретная четверть -->
           <div class="col-md-4">
             <label class="form-label">Период</label>
             <select name="period" class="form-select form-select-sm">
@@ -34,13 +39,14 @@
               <option value="quarter4" {% if period == 'quarter4' %}selected{% endif %}>4 четверть</option>
             </select>
           </div>
+          <!-- Кнопка запуска фильтрации -->
           <div class="col-md-2 d-grid">
             <label class="form-label">&nbsp;</label>
             <button type="submit" class="btn btn-primary btn-sm">🔎 Показать</button>
           </div>
         </form>
 
-        <!-- Таблица отчёта -->
+        <!-- 🔹 Таблица отчёта -->
         <div class="table-responsive">
           <table class="table table-hover table-bordered align-middle text-center">
             <thead class="table-light">
@@ -53,7 +59,9 @@
             <tbody>
               {% for name, grades, avg in report_data %}
               <tr>
+                <!-- Имя ученика -->
                 <td class="text-start">{{ name }}</td>
+                <!-- Список оценок через запятую -->
                 <td>
                   {% if grades %}
                     {{ grades|join(", ") }}
@@ -61,6 +69,7 @@
                     <span class="text-muted">—</span>
                   {% endif %}
                 </td>
+                <!-- Средний балл -->
                 <td>
                   {% if avg %}
                     <span class="badge bg-success">{{ avg }}</span>
@@ -74,10 +83,14 @@
           </table>
         </div>
 
-        <!-- Ссылки -->
+        <!-- 🔹 Кнопки навигации -->
         <div class="d-flex justify-content-between mt-3">
+          <!-- Назад на страницу ввода оценок -->
           <a href="{{ url_for('teacher_page') }}" class="btn btn-outline-secondary">← Назад</a>
-          <a href="{{ url_for('export_class', subject=subject_id, year=year, quarter=0) }}" class="btn btn-outline-success">⬇ Скачать Отчет (год)</a>
+          <!-- Экспорт отчёта за год в Excel -->
+          <a href="{{ url_for('export_class', subject=subject_id, year=year, quarter=0) }}" class="btn btn-outline-success">
+            ⬇ Скачать Отчет (год)
+          </a>
         </div>
 
       </div>

@@ -1,21 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="row">
-  <!-- Левая панель фильтра -->
+  <!-- Левая панель — фильтр -->
   <div class="col-md-3 mb-4">
     <div class="card shadow-sm border-0 rounded-3">
       <div class="card-body">
         <h5 class="card-title mb-3 text-primary">📌 Фильтр</h5>
+        <!-- Форма для выбора года, четверти и предмета -->
         <form method="get">
+          <!-- Выбор года -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Год</label>
             <input name="year" value="{{ year }}" class="form-control form-control-sm">
           </div>
+          <!-- Выбор четверти -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Четверть</label>
             <input name="quarter" value="{{ quarter }}" class="form-control form-control-sm">
             <div class="form-text">0 = все четверти</div>
           </div>
+          <!-- Выбор предмета -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Предмет</label>
             <select name="subject" class="form-select form-select-sm">
@@ -25,22 +29,26 @@
               {% endfor %}
             </select>
           </div>
+          <!-- Кнопка "Показать" -->
           <button class="btn btn-primary w-100 btn-sm">🔎 Показать</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Правая панель с результатами -->
+  <!-- Правая панель — вывод оценок и статистики -->
   <div class="col-md-9">
     <div class="card shadow-sm border-0 rounded-3 mb-4">
       <div class="card-body">
         <h4 class="card-title mb-3 text-success">📖 Оценки</h4>
+
+        <!-- Если оценок нет -->
         {% if not grades %}
           <div class="alert alert-info text-center">
             Здесь пока пусто — возможно, оценки ещё не выставлены.
           </div>
         {% else %}
+          <!-- Таблица с оценками -->
           <div class="table-responsive">
             <table class="table table-striped table-hover align-middle text-center">
               <thead class="table-light">
@@ -54,7 +62,9 @@
               <tbody>
               {% for g in grades %}
                 <tr>
+                  <!-- Название предмета -->
                   <td class="text-start">{{ subject_map.get(g.subject_id, '') }}</td>
+                  <!-- Оценка в виде яркой метки -->
                   <td><span class="badge bg-primary fs-6">{{ g.value }}</span></td>
                   <td>{{ g.year }}</td>
                   <td>{{ g.quarter }}</td>
@@ -64,6 +74,7 @@
             </table>
           </div>
 
+          <!-- Блок со средними баллами по предметам -->
           <h5 class="mt-4">📊 Средний балл по предметам</h5>
           <ul class="list-group list-group-flush">
             {% for k,v in avg.items() %}
@@ -77,6 +88,7 @@
       </div>
     </div>
 
+    <!-- Кнопка для перехода в годовой отчёт -->
     <div class="text-end">
       <a href="{{ url_for('student_report', year=year) }}" class="btn btn-outline-secondary">
         📑 Отчёт за год
